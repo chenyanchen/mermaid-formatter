@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { formatMermaid, formatMarkdownMermaidBlocks, parse, detectDiagramType } from './index.js';
+import {
+  formatMermaid,
+  formatMarkdownMermaidBlocks,
+  parse,
+  detectDiagramType,
+} from '../src/index.js';
 
 describe('detectDiagramType', () => {
   it('detects sequenceDiagram', () => {
-    expect(detectDiagramType('sequenceDiagram\n  A->>B: hello')).toBe('sequenceDiagram');
+    expect(detectDiagramType('sequenceDiagram\n  A->>B: hello')).toBe(
+      'sequenceDiagram'
+    );
   });
 
   it('detects flowchart with direction', () => {
@@ -11,11 +18,15 @@ describe('detectDiagramType', () => {
   });
 
   it('detects classDiagram', () => {
-    expect(detectDiagramType('classDiagram\n  class Animal')).toBe('classDiagram');
+    expect(detectDiagramType('classDiagram\n  class Animal')).toBe(
+      'classDiagram'
+    );
   });
 
   it('skips comments when detecting', () => {
-    expect(detectDiagramType('%% comment\nsequenceDiagram')).toBe('sequenceDiagram');
+    expect(detectDiagramType('%% comment\nsequenceDiagram')).toBe(
+      'sequenceDiagram'
+    );
   });
 });
 

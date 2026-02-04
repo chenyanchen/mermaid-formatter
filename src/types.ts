@@ -40,12 +40,12 @@ export type StatementType =
   | 'diagram-decl'
   | 'directive'
   | 'participant'
-  | 'block-start'      // critical, alt, loop, par, opt, break, rect, subgraph
+  | 'block-start' // critical, alt, loop, par, opt, break, rect, subgraph
   | 'brace-block-start' // state {, class {, namespace {
-  | 'block-option'     // option
-  | 'block-else'       // else
-  | 'block-end'        // end
-  | 'brace-block-end'  // }
+  | 'block-option' // option
+  | 'block-else' // else
+  | 'block-end' // end
+  | 'brace-block-end' // }
   | 'note'
   | 'comment'
   | 'generic-line'

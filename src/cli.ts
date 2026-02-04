@@ -96,7 +96,9 @@ async function readStdin(): Promise<string> {
 
   return new Promise((resolve, reject) => {
     process.stdin.on('data', (chunk: Buffer) => chunks.push(chunk));
-    process.stdin.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+    process.stdin.on('end', () =>
+      resolve(Buffer.concat(chunks).toString('utf-8'))
+    );
     process.stdin.on('error', reject);
   });
 }
@@ -124,7 +126,7 @@ async function main(): Promise<void> {
   if (args.file) {
     try {
       input = readFileSync(args.file, 'utf-8');
-    } catch (err) {
+    } catch (_err) {
       console.error(`Error reading file: ${args.file}`);
       process.exit(1);
     }
@@ -146,7 +148,9 @@ async function main(): Promise<void> {
       process.stdout.write(formatted);
     }
   } catch (err) {
-    console.error(`Error formatting: ${err instanceof Error ? err.message : err}`);
+    console.error(
+      `Error formatting: ${err instanceof Error ? err.message : err}`
+    );
     process.exit(1);
   }
 }

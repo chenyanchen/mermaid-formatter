@@ -23,7 +23,10 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
     // Handle blank lines: collapse consecutive blanks, skip trailing
     if (stmt.type === 'blank-line') {
       // Skip if last was also blank or if at the end
-      if (lastNonBlankType === 'blank-line' || i === diagram.statements.length - 1) {
+      if (
+        lastNonBlankType === 'blank-line' ||
+        i === diagram.statements.length - 1
+      ) {
         continue;
       }
       // Skip blank at the very beginning
@@ -231,7 +234,10 @@ function normalizeBracketPair(
 
       if (depth === 0) {
         // Extract inner content (excluding brackets)
-        const inner = chars.slice(i + 1, j - 1).join('').trim();
+        const inner = chars
+          .slice(i + 1, j - 1)
+          .join('')
+          .trim();
         result.push(open, inner, close);
         i = j;
         continue;
@@ -251,5 +257,8 @@ type char = string;
  */
 function normalizePipeLabels(content: string): string {
   // Match | text | pattern (with space after opening pipe)
-  return content.replace(/\|\s+([^|]*?)\s*\|/g, (_, inner) => `|${inner.trim()}|`);
+  return content.replace(
+    /\|\s+([^|]*?)\s*\|/g,
+    (_, inner) => `|${inner.trim()}|`
+  );
 }
