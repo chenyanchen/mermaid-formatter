@@ -6,6 +6,7 @@ pub fn format(diagram: &Diagram, config: &Config) -> String {
     let mut output = String::new();
     let mut prev_was_blank = false;
     let mut seen_diagram_decl = false;
+    let mut block_depth: usize = 0;  // Track nesting for brace blocks
 
     for (i, stmt) in diagram.statements.iter().enumerate() {
         // Determine if we need a blank line before this statement
@@ -28,8 +29,13 @@ pub fn format(diagram: &Diagram, config: &Config) -> String {
 
         prev_was_blank = false;
 
+        // Handle brace block depth changes BEFORE formatting
+        if matches!(stmt, Statement::BraceBlockEnd) && block_depth > 0 {
+            block_depth -= 1;
+        }
+
         // Calculate depth based on statement type
-        let depth = get_depth(stmt, seen_diagram_decl);
+        let depth = get_depth(stmt, seen_diagram_decl, block_depth);
 
         // Format the statement
         let line = format_statement(stmt, depth, config);
@@ -37,8 +43,13 @@ pub fn format(diagram: &Diagram, config: &Config) -> String {
         output.push('\n');
 
         // Track diagram declaration
-        if matches!(stmt, Statement::DiagramDecl) {
+        if matches!(stmt, Statement::DiagramDecl(_)) {
             seen_diagram_decl = true;
+        }
+
+        // Handle brace block depth changes AFTER formatting
+        if matches!(stmt, Statement::BraceBlockStart(_)) {
+            block_depth += 1;
         }
     }
 
@@ -52,21 +63,28 @@ pub fn format(diagram: &Diagram, config: &Config) -> String {
 }
 
 /// Determine the depth for a statement
-/// - sequenceDiagram: depth 0
-/// - Block keywords (critical, option, else, end): depth 0
-/// - Everything else: depth 1
-fn get_depth(stmt: &Statement, seen_diagram_decl: bool) -> usize {
+fn get_depth(stmt: &Statement, seen_diagram_decl: bool, block_depth: usize) -> usize {
     if !seen_diagram_decl {
         return 0;
     }
 
+    // Base depth is 1 after diagram declaration
+    // Block keywords are at depth 0
+    // Brace blocks add to the depth
+
     match stmt {
-        Statement::DiagramDecl => 0,
+        Statement::DiagramDecl(_) => 0,
+        Statement::Directive(_) => 0,
+        // Blocks that use "end" - keywords at depth 0
         Statement::BlockStart(_) => 0,
         Statement::BlockOption(_) => 0,
         Statement::BlockElse(_) => 0,
         Statement::BlockEnd => 0,
-        _ => 1,
+        // Brace blocks - indent based on nesting
+        Statement::BraceBlockStart(_) => block_depth,
+        Statement::BraceBlockEnd => block_depth,
+        // Everything else is indented
+        _ => 1 + block_depth,
     }
 }
 
@@ -87,15 +105,14 @@ fn should_have_blank_before(
         .find(|s| !matches!(s, Statement::BlankLine));
 
     match stmt {
-        // Blank line before top-level block starts (critical, alt, etc.)
-        Statement::BlockStart(_) => {
+        // Blank line before block starts when preceded by content
+        Statement::BlockStart(_) | Statement::BraceBlockStart(_) => {
             matches!(
                 prev,
                 Some(Statement::BlockEnd)
-                    | Some(Statement::Message(_))
+                    | Some(Statement::BraceBlockEnd)
+                    | Some(Statement::GenericLine(_))
                     | Some(Statement::Participant(_))
-                    | Some(Statement::Activation(_))
-                    | Some(Statement::Deactivation(_))
                     | Some(Statement::Note(_))
             )
         }
@@ -108,27 +125,14 @@ fn format_statement(stmt: &Statement, depth: usize, config: &Config) -> String {
     let indent = config.indent(depth);
 
     match stmt {
-        Statement::DiagramDecl => "sequenceDiagram".to_string(),
+        Statement::DiagramDecl(dt) => dt.format(),
+
+        Statement::Directive(content) => content.clone(),
 
         Statement::Participant(p) => {
             let mut line = format!("{}{} {}", indent, p.keyword.as_str(), p.name);
             if let Some(alias) = &p.alias {
                 line.push_str(&format!(" as {}", alias));
-            }
-            line
-        }
-
-        Statement::Message(m) => {
-            let mut line = format!(
-                "{}{} {} {}:",
-                indent,
-                m.from,
-                m.arrow.as_str(),
-                m.to
-            );
-            if let Some(text) = &m.text {
-                line.push(' ');
-                line.push_str(text);
             }
             line
         }
@@ -140,6 +144,10 @@ fn format_statement(stmt: &Statement, depth: usize, config: &Config) -> String {
                 line.push_str(label);
             }
             line
+        }
+
+        Statement::BraceBlockStart(b) => {
+            format!("{}{} {} {{", indent, b.kind.as_str(), b.name)
         }
 
         Statement::BlockOption(label) => {
@@ -162,25 +170,13 @@ fn format_statement(stmt: &Statement, depth: usize, config: &Config) -> String {
 
         Statement::BlockEnd => format!("{}end", indent),
 
-        Statement::Activation(name) => format!("{}activate {}", indent, name),
+        Statement::BraceBlockEnd => format!("{}}}", indent),
 
-        Statement::Deactivation(name) => format!("{}deactivate {}", indent, name),
-
-        Statement::Note(n) => {
-            let mut line = format!(
-                "{}Note {} {}:",
-                indent,
-                n.position.as_str(),
-                n.participant
-            );
-            if let Some(text) = &n.text {
-                line.push(' ');
-                line.push_str(text);
-            }
-            line
-        }
+        Statement::Note(content) => format!("{}{}", indent, content),
 
         Statement::Comment(text) => format!("{}%%{}", indent, text),
+
+        Statement::GenericLine(content) => format!("{}{}", indent, content),
 
         Statement::BlankLine => String::new(),
     }
@@ -192,13 +188,23 @@ mod tests {
     use crate::parser::parse;
 
     #[test]
-    fn test_format_simple() {
+    fn test_format_sequence_diagram() {
         let input = "sequenceDiagram\n    A ->> B: hello\n";
         let diagram = parse(input).unwrap();
         let config = Config::default();
         let output = format(&diagram, &config);
         assert!(output.contains("sequenceDiagram"));
         assert!(output.contains("    A ->> B: hello")); // Should be indented
+    }
+
+    #[test]
+    fn test_format_flowchart() {
+        let input = "flowchart TD\n    A --> B\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("flowchart TD"));
+        assert!(output.contains("    A --> B"));
     }
 
     #[test]

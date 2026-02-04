@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`mmdfmt` is a Rust-based formatter for Mermaid diagram syntax, specifically supporting sequenceDiagram currently.
+`mmdfmt` is a Rust-based formatter for Mermaid diagram syntax. Supports multiple diagram types: sequenceDiagram, flowchart, classDiagram, stateDiagram, erDiagram, and more.
 
 ## Build Commands
 

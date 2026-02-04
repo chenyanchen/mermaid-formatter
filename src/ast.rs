@@ -1,4 +1,4 @@
-/// AST types for Mermaid sequence diagrams
+/// AST types for Mermaid diagrams
 
 #[derive(Debug, Clone)]
 pub struct Diagram {
@@ -7,18 +7,95 @@ pub struct Diagram {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    DiagramDecl,
+    /// Diagram type declaration (sequenceDiagram, flowchart TD, classDiagram, etc.)
+    DiagramDecl(DiagramType),
+    /// Directive (%%{ ... }%%)
+    Directive(String),
+    /// Participant declaration (sequence diagram)
     Participant(Participant),
-    Message(Message),
+    /// Block start that uses "end" to close (critical, alt, loop, subgraph, etc.)
     BlockStart(BlockStart),
-    BlockOption(Option<String>),  // label
-    BlockElse(Option<String>),    // label
+    /// Block start that uses "}" to close (state X {, class X {, namespace X {)
+    BraceBlockStart(BraceBlockStart),
+    /// Option within a block (sequence diagram)
+    BlockOption(Option<String>),
+    /// Else within a block (sequence diagram)
+    BlockElse(Option<String>),
+    /// End keyword (closes BlockStart)
     BlockEnd,
-    Activation(String),           // participant name
-    Deactivation(String),         // participant name
-    Note(Note),
+    /// Closing brace (closes BraceBlockStart)
+    BraceBlockEnd,
+    /// Note statement
+    Note(String),
+    /// Comment
     Comment(String),
+    /// Generic content line (arrows, nodes, relationships, etc.)
+    GenericLine(String),
+    /// Blank line
     BlankLine,
+}
+
+#[derive(Debug, Clone)]
+pub enum DiagramType {
+    SequenceDiagram,
+    Flowchart(Option<String>),  // direction
+    Graph(Option<String>),      // direction
+    ClassDiagram,
+    StateDiagram,
+    StateDiagramV2,
+    ErDiagram,
+    Journey,
+    Gantt,
+    Pie(bool),  // showData
+    QuadrantChart,
+    RequirementDiagram,
+    GitGraph,
+    Mindmap,
+    Timeline,
+    SankeyBeta,
+    XyChartBeta,
+    BlockBeta,
+}
+
+impl DiagramType {
+    pub fn format(&self) -> String {
+        match self {
+            DiagramType::SequenceDiagram => "sequenceDiagram".to_string(),
+            DiagramType::Flowchart(dir) => {
+                match dir {
+                    Some(d) => format!("flowchart {}", d),
+                    None => "flowchart".to_string(),
+                }
+            }
+            DiagramType::Graph(dir) => {
+                match dir {
+                    Some(d) => format!("graph {}", d),
+                    None => "graph".to_string(),
+                }
+            }
+            DiagramType::ClassDiagram => "classDiagram".to_string(),
+            DiagramType::StateDiagram => "stateDiagram".to_string(),
+            DiagramType::StateDiagramV2 => "stateDiagram-v2".to_string(),
+            DiagramType::ErDiagram => "erDiagram".to_string(),
+            DiagramType::Journey => "journey".to_string(),
+            DiagramType::Gantt => "gantt".to_string(),
+            DiagramType::Pie(show_data) => {
+                if *show_data {
+                    "pie showData".to_string()
+                } else {
+                    "pie".to_string()
+                }
+            }
+            DiagramType::QuadrantChart => "quadrantChart".to_string(),
+            DiagramType::RequirementDiagram => "requirementDiagram".to_string(),
+            DiagramType::GitGraph => "gitGraph".to_string(),
+            DiagramType::Mindmap => "mindmap".to_string(),
+            DiagramType::Timeline => "timeline".to_string(),
+            DiagramType::SankeyBeta => "sankey-beta".to_string(),
+            DiagramType::XyChartBeta => "xychart-beta".to_string(),
+            DiagramType::BlockBeta => "block-beta".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -43,63 +120,16 @@ impl ParticipantKeyword {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Message {
-    pub from: String,
-    pub arrow: Arrow,
-    pub to: String,
-    pub text: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Arrow {
-    Solid,        // ->
-    SolidOpen,    // ->>
-    Dotted,       // -->
-    DottedOpen,   // -->>
-    SolidCross,   // -x
-    DottedCross,  // --x
-    SolidAsync,   // -)
-    DottedAsync,  // --)
-}
-
-impl Arrow {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Arrow::Solid => "->",
-            Arrow::SolidOpen => "->>",
-            Arrow::Dotted => "-->",
-            Arrow::DottedOpen => "-->>",
-            Arrow::SolidCross => "-x",
-            Arrow::DottedCross => "--x",
-            Arrow::SolidAsync => "-)",
-            Arrow::DottedAsync => "--)",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "->" => Some(Arrow::Solid),
-            "->>" => Some(Arrow::SolidOpen),
-            "-->" => Some(Arrow::Dotted),
-            "-->>" => Some(Arrow::DottedOpen),
-            "-x" => Some(Arrow::SolidCross),
-            "--x" => Some(Arrow::DottedCross),
-            "-)" => Some(Arrow::SolidAsync),
-            "--)" => Some(Arrow::DottedAsync),
-            _ => None,
-        }
-    }
-}
-
+/// Block that uses "end" to close
 #[derive(Debug, Clone)]
 pub struct BlockStart {
     pub kind: BlockKind,
     pub label: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum BlockKind {
+    // Sequence diagram
     Critical,
     Alt,
     Loop,
@@ -107,6 +137,8 @@ pub enum BlockKind {
     Opt,
     Break,
     Rect,
+    // Flowchart
+    Subgraph,
 }
 
 impl BlockKind {
@@ -119,52 +151,31 @@ impl BlockKind {
             BlockKind::Opt => "opt",
             BlockKind::Break => "break",
             BlockKind::Rect => "rect",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "critical" => Some(BlockKind::Critical),
-            "alt" => Some(BlockKind::Alt),
-            "loop" => Some(BlockKind::Loop),
-            "par" => Some(BlockKind::Par),
-            "opt" => Some(BlockKind::Opt),
-            "break" => Some(BlockKind::Break),
-            "rect" => Some(BlockKind::Rect),
-            _ => None,
+            BlockKind::Subgraph => "subgraph",
         }
     }
 }
 
+/// Block that uses "}" to close
 #[derive(Debug, Clone)]
-pub struct Note {
-    pub position: NotePosition,
-    pub participant: String,
-    pub text: Option<String>,
+pub struct BraceBlockStart {
+    pub kind: BraceBlockKind,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum NotePosition {
-    RightOf,
-    LeftOf,
-    Over,
+pub enum BraceBlockKind {
+    State,
+    Class,
+    Namespace,
 }
 
-impl NotePosition {
+impl BraceBlockKind {
     pub fn as_str(&self) -> &'static str {
         match self {
-            NotePosition::RightOf => "right of",
-            NotePosition::LeftOf => "left of",
-            NotePosition::Over => "over",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "right of" => Some(NotePosition::RightOf),
-            "left of" => Some(NotePosition::LeftOf),
-            "over" => Some(NotePosition::Over),
-            _ => None,
+            BraceBlockKind::State => "state",
+            BraceBlockKind::Class => "class",
+            BraceBlockKind::Namespace => "namespace",
         }
     }
 }

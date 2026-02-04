@@ -1,4 +1,5 @@
-// Mermaid Sequence Diagram Grammar for mmdfmt
+// Mermaid Diagram Grammar for mmdfmt
+// Supports: sequenceDiagram, flowchart, classDiagram, stateDiagram, erDiagram, etc.
 
 // Main entry point - a diagram with statements
 diagram = { SOI ~ line* ~ EOI }
@@ -9,65 +10,98 @@ line = { ws* ~ line_content? ~ NEWLINE }
 line_content = _{
     comment
     | diagram_decl
-    | participant_decl
-    | block_option   // Must be before block_start (option vs opt)
-    | block_else
-    | block_end
-    | block_start
-    | activation
-    | deactivation
-    | note
-    | message
+    | directive
+    | block_end_brace      // Must be before generic_line to catch lone "}"
+    | participant_decl     // Must be before sequence_block_start (par vs participant)
+    | sequence_block_option  // sequence diagram: option
+    | sequence_block_else    // sequence diagram: else
+    | block_end              // end keyword
+    | subgraph_start         // flowchart: subgraph
+    | state_block_start      // state diagram: state X {
+    | class_block_start      // class diagram: class X {
+    | namespace_start        // class diagram: namespace X {
+    | sequence_block_start   // sequence diagram: critical, alt, loop, par, opt, break, rect
+    | note_line              // Note statements
+    | generic_line           // Everything else (arrows, nodes, relationships, etc.)
 }
-
-// Last line might not have newline
-NEWLINE = _{ "\r\n" | "\n" | "\r" }
 
 // Whitespace (not including newlines)
 ws = _{ " " | "\t" }
+NEWLINE = _{ "\r\n" | "\n" | "\r" }
 
 // Comments start with %%
 comment = { "%%" ~ (!NEWLINE ~ ANY)* }
 
-// Diagram type declaration
-diagram_decl = { "sequenceDiagram" }
+// Directives (%%{ ... }%%)
+directive = { "%%{" ~ (!"}%%" ~ ANY)* ~ "}%%" }
 
-// Participant/actor declarations
+// Diagram type declarations
+diagram_decl = {
+    "sequenceDiagram"
+    | "flowchart" ~ (ws+ ~ direction)?
+    | "graph" ~ (ws+ ~ direction)?
+    | "classDiagram"
+    | "stateDiagram-v2"
+    | "stateDiagram"
+    | "erDiagram"
+    | "journey"
+    | "gantt"
+    | "pie" ~ (ws+ ~ "showData")?
+    | "quadrantChart"
+    | "requirementDiagram"
+    | "gitGraph"
+    | "mindmap"
+    | "timeline"
+    | "sankey-beta"
+    | "xychart-beta"
+    | "block-beta"
+}
+
+direction = @{ "TD" | "TB" | "BT" | "LR" | "RL" }
+
+// Sequence diagram specific
 participant_decl = {
     ("participant" | "actor") ~ ws+ ~ identifier ~ (ws+ ~ "as" ~ ws+ ~ alias)?
 }
 alias = @{ (!NEWLINE ~ ANY)+ }
 
-// Messages: A ->> B: text
-message = {
-    identifier ~ ws* ~ arrow ~ ws* ~ identifier ~ ws* ~ ":" ~ ws* ~ message_text?
-}
-arrow = @{
-    "-->>" | "-->" | "->>" | "->" |
-    "--x" | "-x" |
-    "--)" | "-)"
-}
-message_text = @{ (!NEWLINE ~ ANY)* }
-
-// Block structures
-block_start = {
+sequence_block_start = {
     ("critical" | "alt" | "loop" | "par" | "opt" | "break" | "rect") ~ (ws+ ~ block_label)?
 }
-block_option = { "option" ~ (ws+ ~ block_label)? }
-block_else = { "else" ~ (ws+ ~ block_label)? }
+sequence_block_option = { "option" ~ (ws* ~ block_label)? }
+sequence_block_else = { "else" ~ (ws* ~ block_label)? }
+
+// Flowchart specific
+subgraph_start = { "subgraph" ~ (ws+ ~ subgraph_content)? }
+subgraph_content = @{ (!NEWLINE ~ ANY)+ }
+
+// State diagram specific - state X { opens a block
+state_block_start = { "state" ~ ws+ ~ state_name ~ ws* ~ "{" }
+state_name = @{ (!(ws* ~ "{") ~ !NEWLINE ~ ANY)+ }
+
+// Class diagram specific
+class_block_start = { "class" ~ ws+ ~ class_name ~ ws* ~ "{" }
+class_name = @{ (!(ws* ~ "{") ~ !NEWLINE ~ ANY)+ }
+
+namespace_start = { "namespace" ~ ws+ ~ namespace_name ~ ws* ~ "{" }
+namespace_name = @{ (!(ws* ~ "{") ~ !NEWLINE ~ ANY)+ }
+
+// Block endings
 block_end = { "end" }
+block_end_brace = { "}" }
+
+// Notes (various forms)
+note_line = {
+    "note" ~ ws+ ~ (!NEWLINE ~ ANY)*
+    | "Note" ~ ws+ ~ (!NEWLINE ~ ANY)*
+}
+
+// Labels
 block_label = @{ (!NEWLINE ~ ANY)+ }
 
-// Activation/Deactivation
-activation = { "activate" ~ ws+ ~ identifier }
-deactivation = { "deactivate" ~ ws+ ~ identifier }
-
-// Notes
-note = {
-    "Note" ~ ws+ ~ note_position ~ ws+ ~ identifier ~ ws* ~ ":" ~ ws* ~ note_text?
-}
-note_position = { "right of" | "left of" | "over" }
-note_text = @{ (!NEWLINE ~ ANY)* }
-
-// Identifiers can contain alphanumeric, underscore, hyphen
+// Identifiers
 identifier = @{ (ASCII_ALPHANUMERIC | "_" | "-")+ }
+
+// Generic line - captures everything else (nodes, arrows, relationships, etc.)
+// This is the fallback for any content that doesn't match specific patterns
+generic_line = @{ (!NEWLINE ~ ANY)+ }
