@@ -1,8 +1,8 @@
   flowchart TD
     A[Agent 决定修改文件] --> B{目标在哪?}
 
-    B -->|共享工作区/Agent本地| C[Agent 调用本地工具写文件]
-    C --> D[文件系统直接被修改]
+    B -->| 共享工作区/Agent本地| C[Agent 调用本地工具写文件]
+    C --> D[ 文件系统直接被修改]
     D --> E[Client 读取同一文件系统, 变化可见]
 
     B -->|Client 机器| F[Agent 调用 ACP fs/write_text_file]

@@ -1,6 +1,117 @@
 use crate::ast::*;
 use crate::config::Config;
 
+/// Normalize content by fixing spacing issues using regex-like replacements.
+/// This is simpler and more predictable than character-by-character processing.
+fn normalize_content(content: &str) -> String {
+    let mut result = content.to_string();
+
+    // 1. Collapse multiple spaces into one (but preserve leading indent which is already handled)
+    while result.contains("  ") {
+        result = result.replace("  ", " ");
+    }
+
+    // 2. Normalize `: ` - ensure single space after colon when followed by content
+    // Pattern: `: +` -> `: ` (colon followed by multiple spaces)
+    while result.contains(":  ") {
+        result = result.replace(":  ", ": ");
+    }
+
+    // 3. Normalize brackets with internal padding: `[ text ]` -> `[text]`
+    // Only for brackets that have space immediately after opening
+    result = normalize_bracket_pair(&result, '[', ']');
+    result = normalize_bracket_pair(&result, '(', ')');
+    result = normalize_bracket_pair(&result, '{', '}');
+
+    // 4. Normalize pipes with internal padding: `| text |` -> `|text|`
+    result = normalize_pipe_labels(&result);
+
+    result
+}
+
+/// Normalize a bracket pair by removing internal padding.
+/// Only affects brackets where the opening is followed by space.
+fn normalize_bracket_pair(content: &str, open: char, close: char) -> String {
+    let mut result = String::with_capacity(content.len());
+    let chars: Vec<char> = content.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        let c = chars[i];
+
+        if c == open && i + 1 < len && chars[i + 1] == ' ' {
+            // Found opening bracket followed by space
+            // Look for the matching closing bracket
+            let mut depth = 1;
+            let mut j = i + 1;
+            while j < len && depth > 0 {
+                if chars[j] == open {
+                    depth += 1;
+                } else if chars[j] == close {
+                    depth -= 1;
+                }
+                j += 1;
+            }
+
+            if depth == 0 {
+                // Found matching close bracket at j-1
+                let close_idx = j - 1;
+                // Extract content between brackets
+                let inner: String = chars[i + 1..close_idx].iter().collect();
+                let trimmed = inner.trim();
+                result.push(open);
+                result.push_str(trimmed);
+                result.push(close);
+                i = j;
+                continue;
+            }
+        }
+
+        result.push(c);
+        i += 1;
+    }
+
+    result
+}
+
+/// Normalize pipe labels: `| text |` -> `|text|`
+/// Preserves space after closing pipe.
+fn normalize_pipe_labels(content: &str) -> String {
+    let mut result = String::with_capacity(content.len());
+    let chars: Vec<char> = content.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        let c = chars[i];
+
+        if c == '|' && i + 1 < len && chars[i + 1] == ' ' {
+            // Opening pipe followed by space - look for closing pipe
+            let mut j = i + 1;
+            while j < len && chars[j] != '|' {
+                j += 1;
+            }
+
+            if j < len {
+                // Found closing pipe
+                let inner: String = chars[i + 1..j].iter().collect();
+                let trimmed = inner.trim();
+                result.push('|');
+                result.push_str(trimmed);
+                result.push('|');
+                i = j + 1;
+                continue;
+            }
+        }
+
+        result.push(c);
+        i += 1;
+    }
+
+    result
+}
+
 /// Format a parsed Mermaid diagram according to the given configuration
 pub fn format(diagram: &Diagram, config: &Config) -> String {
     let mut output = String::new();
@@ -176,7 +287,7 @@ fn format_statement(stmt: &Statement, depth: usize, config: &Config) -> String {
 
         Statement::Comment(text) => format!("{}%%{}", indent, text),
 
-        Statement::GenericLine(content) => format!("{}{}", indent, content),
+        Statement::GenericLine(content) => format!("{}{}", indent, normalize_content(content)),
 
         Statement::BlankLine => String::new(),
     }
@@ -187,6 +298,68 @@ mod tests {
     use super::*;
     use crate::parser::parse;
 
+    // ==================== Normalization Tests ====================
+
+    #[test]
+    fn test_normalize_spaces_after_colon() {
+        assert_eq!(normalize_content("A:  B"), "A: B");
+        assert_eq!(normalize_content("A:   B"), "A: B");
+        assert_eq!(normalize_content("A: B"), "A: B");
+        assert_eq!(normalize_content("A:B"), "A:B");  // No space, no change
+    }
+
+    #[test]
+    fn test_normalize_spaces_inside_brackets() {
+        // Only normalize when opening bracket is followed by space
+        // This avoids false positives in cases like ER diagram `||--o{`
+        assert_eq!(normalize_content("[ text ]"), "[text]");
+        assert_eq!(normalize_content("[  text  ]"), "[text]");
+        assert_eq!(normalize_content("[ text]"), "[text]");
+        assert_eq!(normalize_content("[text ]"), "[text ]");  // No leading space, don't touch
+        assert_eq!(normalize_content("[text]"), "[text]");
+    }
+
+    #[test]
+    fn test_normalize_spaces_inside_braces() {
+        assert_eq!(normalize_content("{ text }"), "{text}");
+        assert_eq!(normalize_content("{  text  }"), "{text}");
+    }
+
+    #[test]
+    fn test_normalize_spaces_inside_parens() {
+        assert_eq!(normalize_content("( text )"), "(text)");
+        assert_eq!(normalize_content("(  text  )"), "(text)");
+    }
+
+    #[test]
+    fn test_normalize_spaces_inside_pipes() {
+        assert_eq!(normalize_content("| text |"), "|text|");
+        assert_eq!(normalize_content("|  text  |"), "|text|");
+        assert_eq!(normalize_content("|text|"), "|text|");
+    }
+
+    #[test]
+    fn test_normalize_preserves_space_after_closing_pipe() {
+        assert_eq!(normalize_content("| label | B"), "|label| B");
+        assert_eq!(normalize_content("|label| B"), "|label| B");
+    }
+
+    #[test]
+    fn test_normalize_multiple_spaces() {
+        assert_eq!(normalize_content("A  B"), "A B");
+        assert_eq!(normalize_content("A   B   C"), "A B C");
+    }
+
+    #[test]
+    fn test_normalize_complex_flowchart_line() {
+        assert_eq!(
+            normalize_content("B -->| 共享工作区 | C[ Agent ]"),
+            "B -->|共享工作区| C[Agent]"
+        );
+    }
+
+    // ==================== Formatting Tests ====================
+
     #[test]
     fn test_format_sequence_diagram() {
         let input = "sequenceDiagram\n    A ->> B: hello\n";
@@ -194,7 +367,17 @@ mod tests {
         let config = Config::default();
         let output = format(&diagram, &config);
         assert!(output.contains("sequenceDiagram"));
-        assert!(output.contains("    A ->> B: hello")); // Should be indented
+        assert!(output.contains("    A ->> B: hello"));
+    }
+
+    #[test]
+    fn test_format_sequence_normalizes_message() {
+        let input = "sequenceDiagram\n    A ->> B:  hello\n";  // Double space after :
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("A ->> B: hello"));  // Single space
+        assert!(!output.contains(":  "));  // No double space
     }
 
     #[test]
@@ -208,12 +391,100 @@ mod tests {
     }
 
     #[test]
+    fn test_format_flowchart_normalizes_brackets() {
+        let input = "flowchart TD\n    A[ text ] --> B{ choice }\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("[text]"));
+        assert!(output.contains("{choice}"));
+    }
+
+    #[test]
+    fn test_format_flowchart_normalizes_edge_labels() {
+        let input = "flowchart TD\n    A -->| label | B\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("|label|"));
+    }
+
+    #[test]
     fn test_format_removes_extra_blanks() {
         let input = "sequenceDiagram\n\n\n    A ->> B: hello\n";
         let diagram = parse(input).unwrap();
         let config = Config::default();
         let output = format(&diagram, &config);
-        // Should not have multiple consecutive blank lines
         assert!(!output.contains("\n\n\n"));
+    }
+
+    #[test]
+    fn test_format_preserves_single_blank() {
+        let input = "sequenceDiagram\n\ncritical Block\nend\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        // Should have blank line before critical
+        assert!(output.contains("sequenceDiagram\n\ncritical"));
+    }
+
+    #[test]
+    fn test_format_subgraph() {
+        let input = "flowchart TD\nsubgraph one\n    A --> B\nend\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("subgraph one"));
+        assert!(output.contains("    A --> B"));
+        assert!(output.contains("\nend\n"));
+    }
+
+    #[test]
+    fn test_format_class_diagram() {
+        let input = "classDiagram\n    Animal <|-- Duck\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("classDiagram"));
+        assert!(output.contains("    Animal <|-- Duck"));
+    }
+
+    #[test]
+    fn test_format_state_diagram() {
+        let input = "stateDiagram-v2\n    [*] --> Still\n    Still --> Moving\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("stateDiagram-v2"));
+        assert!(output.contains("    [*] --> Still"));
+    }
+
+    #[test]
+    fn test_format_er_diagram() {
+        let input = "erDiagram\n    CUSTOMER ||--o{ ORDER : places\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::default();
+        let output = format(&diagram, &config);
+        assert!(output.contains("erDiagram"));
+        assert!(output.contains("CUSTOMER ||--o{ ORDER : places"));
+    }
+
+    #[test]
+    fn test_format_custom_indent() {
+        let input = "flowchart TD\n    A --> B\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::new().with_indent_size(2);
+        let output = format(&diagram, &config);
+        assert!(output.contains("  A --> B"));  // 2 spaces
+        assert!(!output.contains("    A"));  // Not 4 spaces
+    }
+
+    #[test]
+    fn test_format_with_tabs() {
+        let input = "flowchart TD\n    A --> B\n";
+        let diagram = parse(input).unwrap();
+        let config = Config::new().with_tabs();
+        let output = format(&diagram, &config);
+        assert!(output.contains("\tA --> B"));
     }
 }
