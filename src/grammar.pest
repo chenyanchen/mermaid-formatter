@@ -1,0 +1,73 @@
+// Mermaid Sequence Diagram Grammar for mmdfmt
+
+// Main entry point - a diagram with statements
+diagram = { SOI ~ line* ~ EOI }
+
+// Each line can be various things
+line = { ws* ~ line_content? ~ NEWLINE }
+
+line_content = _{
+    comment
+    | diagram_decl
+    | participant_decl
+    | block_option   // Must be before block_start (option vs opt)
+    | block_else
+    | block_end
+    | block_start
+    | activation
+    | deactivation
+    | note
+    | message
+}
+
+// Last line might not have newline
+NEWLINE = _{ "\r\n" | "\n" | "\r" }
+
+// Whitespace (not including newlines)
+ws = _{ " " | "\t" }
+
+// Comments start with %%
+comment = { "%%" ~ (!NEWLINE ~ ANY)* }
+
+// Diagram type declaration
+diagram_decl = { "sequenceDiagram" }
+
+// Participant/actor declarations
+participant_decl = {
+    ("participant" | "actor") ~ ws+ ~ identifier ~ (ws+ ~ "as" ~ ws+ ~ alias)?
+}
+alias = @{ (!NEWLINE ~ ANY)+ }
+
+// Messages: A ->> B: text
+message = {
+    identifier ~ ws* ~ arrow ~ ws* ~ identifier ~ ws* ~ ":" ~ ws* ~ message_text?
+}
+arrow = @{
+    "-->>" | "-->" | "->>" | "->" |
+    "--x" | "-x" |
+    "--)" | "-)"
+}
+message_text = @{ (!NEWLINE ~ ANY)* }
+
+// Block structures
+block_start = {
+    ("critical" | "alt" | "loop" | "par" | "opt" | "break" | "rect") ~ (ws+ ~ block_label)?
+}
+block_option = { "option" ~ (ws+ ~ block_label)? }
+block_else = { "else" ~ (ws+ ~ block_label)? }
+block_end = { "end" }
+block_label = @{ (!NEWLINE ~ ANY)+ }
+
+// Activation/Deactivation
+activation = { "activate" ~ ws+ ~ identifier }
+deactivation = { "deactivate" ~ ws+ ~ identifier }
+
+// Notes
+note = {
+    "Note" ~ ws+ ~ note_position ~ ws+ ~ identifier ~ ws* ~ ":" ~ ws* ~ note_text?
+}
+note_position = { "right of" | "left of" | "over" }
+note_text = @{ (!NEWLINE ~ ANY)* }
+
+// Identifiers can contain alphanumeric, underscore, hyphen
+identifier = @{ (ASCII_ALPHANUMERIC | "_" | "-")+ }

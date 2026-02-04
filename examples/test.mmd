@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant client as Client
+    participant agent as Agent
+critical Baseline Methods
+      client ->> agent: initialize
+    client ->> agent: authenticate
+    client ->> agent: session/new
+    client ->> agent: session/prompt
+option  Optional Methods
+      client ->> agent: session/load
+    client ->> agent: session/set_mode
+option Notifications
+      client ->> agent: session/cancel
+end
+
+
+
+critical Baseline Methods
+    agent ->> client: session/request_permission
+option  Optional Methods
+    agent ->> client: fs/read_text_file
+    agent ->> client: fs/write_text_file
+    agent ->> client: terminal/create
+    agent ->> client: terminal/output
+    agent ->> client: terminal/release
+    agent ->> client: terminal/wait_for_exit
+    agent ->> client: terminal/kill
+option Notifications
+    agent ->> client: session/update
+end

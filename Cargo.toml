@@ -1,0 +1,12 @@
+[package]
+name = "mmdfmt"
+version = "0.1.0"
+edition = "2021"
+description = "A formatter for Mermaid diagram syntax"
+license = "MIT"
+
+[dependencies]
+pest = "2.7"
+pest_derive = "2.7"
+clap = { version = "4", features = ["derive"] }
+thiserror = "1.0"
