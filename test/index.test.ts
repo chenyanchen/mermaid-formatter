@@ -69,6 +69,31 @@ class Animal {
     expect(diagram.statements[1].label).toBe('Animal');
     expect(diagram.statements[3].type).toBe('brace-block-end');
   });
+
+  it('parses brace blocks with spaces in name', () => {
+    const input = `classDiagram
+class "HTTP Client" {
+    +send()
+}`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('brace-block-start');
+    expect(diagram.statements[1].blockKind).toBe('class');
+    expect(diagram.statements[1].label).toBe('"HTTP Client"');
+    expect(diagram.statements[3].type).toBe('brace-block-end');
+  });
+
+  it('parses state blocks with spaces in name', () => {
+    const input = `stateDiagram-v2
+state In Progress {
+    Working
+}`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('brace-block-start');
+    expect(diagram.statements[1].blockKind).toBe('state');
+    expect(diagram.statements[1].label).toBe('In Progress');
+  });
 });
 
 describe('formatMermaid', () => {
@@ -90,6 +115,15 @@ participant A`;
   participant A
 `;
     expect(formatMermaid(input, { indentSize: 2 })).toBe(expected);
+  });
+
+  it('formats with zero indent', () => {
+    const input = `sequenceDiagram
+participant A`;
+    const expected = `sequenceDiagram
+participant A
+`;
+    expect(formatMermaid(input, { indentSize: 0 })).toBe(expected);
   });
 
   it('formats with tabs', () => {
@@ -184,6 +218,20 @@ namespace Animals {
     expect(formatMermaid(input)).toBe(expected);
   });
 
+  it('formats brace blocks with spaces in name', () => {
+    const input = `classDiagram
+class "HTTP Client" {
+    +send()
+}`;
+    const expected = `classDiagram
+
+class "HTTP Client" {
+    +send()
+}
+`;
+    expect(formatMermaid(input)).toBe(expected);
+  });
+
   it('formats flowchart with subgraph', () => {
     const input = `flowchart TD
 A --> B
@@ -271,5 +319,14 @@ flowchart TD
 
     expect(result).toContain('    A->>B: hello');
     expect(result).toContain('    A --> B');
+  });
+
+  it('handles CRLF line endings', () => {
+    const input = '```mermaid\r\nsequenceDiagram\r\n  A->>B: hello\r\n```';
+    const result = formatMarkdownMermaidBlocks(input);
+
+    expect(result).toContain('    A->>B: hello');
+    // Output should use LF
+    expect(result).not.toContain('\r\n');
   });
 });

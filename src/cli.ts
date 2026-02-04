@@ -35,9 +35,11 @@ function parseArgs(args: string[]): CliArgs {
       result.tabs = true;
     } else if (arg === '--indent') {
       const next = args[++i];
-      result.indent = parseInt(next, 10) || 4;
+      const parsed = parseInt(next, 10);
+      result.indent = Number.isNaN(parsed) ? 4 : parsed;
     } else if (arg.startsWith('--indent=')) {
-      result.indent = parseInt(arg.slice(9), 10) || 4;
+      const parsed = parseInt(arg.slice(9), 10);
+      result.indent = Number.isNaN(parsed) ? 4 : parsed;
     } else if (!arg.startsWith('-')) {
       result.file = arg;
     }

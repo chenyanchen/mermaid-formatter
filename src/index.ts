@@ -63,8 +63,9 @@ export function formatMarkdownMermaidBlocks(
   markdown: string,
   options?: FormatOptions
 ): string {
+  // Support both LF and CRLF line endings
   return markdown.replace(
-    /```mermaid\n([\s\S]*?)```/g,
+    /```mermaid\r?\n([\s\S]*?)```/g,
     (_, code: string) => '```mermaid\n' + formatMermaid(code, options) + '```'
   );
 }

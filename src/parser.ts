@@ -180,16 +180,17 @@ function matchBlockStart(line: string): BlockKind | null {
 
 /**
  * Match brace block start (state Name {, class Name {, namespace Name {)
+ * Supports names with spaces, quotes, etc. (e.g., class "HTTP Client" {)
  */
 function matchBraceBlockStart(
   line: string
 ): { kind: BraceBlockKind; name: string } | null {
   for (const keyword of BRACE_BLOCK_KEYWORDS) {
-    // Match: keyword name { or keyword name{
-    const pattern = new RegExp(`^${keyword}\\s+(\\S+)\\s*\\{\\s*$`);
+    // Match: keyword <name> { where name is everything before the last {
+    const pattern = new RegExp(`^${keyword}\\s+(.+?)\\s*\\{\\s*$`);
     const match = line.match(pattern);
     if (match) {
-      return { kind: keyword, name: match[1] };
+      return { kind: keyword, name: match[1].trim() };
     }
   }
   return null;
