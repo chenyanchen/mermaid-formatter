@@ -86,3 +86,9 @@ export interface Diagram {
   type: DiagramType;
   statements: Statement[];
 }
+
+/**
+ * Diagram types where indentation represents hierarchy.
+ * These should NOT be reformatted as it would change semantics.
+ */
+export const INDENT_SENSITIVE_DIAGRAMS: DiagramType[] = ['mindmap', 'timeline'];

@@ -8,11 +8,13 @@ export type {
   BraceBlockKind,
 } from './types.js';
 
+export { INDENT_SENSITIVE_DIAGRAMS } from './types.js';
 export { parse, detectDiagramType } from './parser.js';
 export { format } from './formatter.js';
 
-import { parse } from './parser.js';
+import { parse, detectDiagramType } from './parser.js';
 import { format } from './formatter.js';
+import { INDENT_SENSITIVE_DIAGRAMS } from './types.js';
 import type { FormatOptions } from './types.js';
 
 /**
@@ -34,6 +36,14 @@ import type { FormatOptions } from './types.js';
  * ```
  */
 export function formatMermaid(input: string, options?: FormatOptions): string {
+  // Check if this is an indent-sensitive diagram type
+  const diagramType = detectDiagramType(input);
+  if (INDENT_SENSITIVE_DIAGRAMS.includes(diagramType)) {
+    // For indent-sensitive diagrams, preserve original formatting
+    // Only ensure trailing newline
+    return input.endsWith('\n') ? input : input + '\n';
+  }
+
   const diagram = parse(input);
   return format(diagram, options);
 }
@@ -64,8 +74,19 @@ export function formatMarkdownMermaidBlocks(
   options?: FormatOptions
 ): string {
   // Support both LF and CRLF line endings
+  // Capture leading indentation to preserve it for nested code blocks
   return markdown.replace(
-    /```mermaid\r?\n([\s\S]*?)```/g,
-    (_, code: string) => '```mermaid\n' + formatMermaid(code, options) + '```'
+    /^([ \t]*)```mermaid\r?\n([\s\S]*?)```/gm,
+    (_, indent: string, code: string) => {
+      const formatted = formatMermaid(code, options);
+      // Add indentation to each line of the formatted code
+      const indentedCode = indent
+        ? formatted
+            .split('\n')
+            .map((line) => (line ? indent + line : line))
+            .join('\n')
+        : formatted;
+      return indent + '```mermaid\n' + indentedCode + indent + '```';
+    }
   );
 }

@@ -280,6 +280,26 @@ sequenceDiagram
 `;
     expect(formatMermaid(input)).toBe(expected);
   });
+
+  it('preserves mindmap indentation (indent-sensitive)', () => {
+    const input = `mindmap
+  root((mindmap))
+    Origins
+      Long history
+    Research
+      Popularisation`;
+    // Should preserve original indentation, not reformat
+    expect(formatMermaid(input)).toBe(input + '\n');
+  });
+
+  it('preserves timeline indentation (indent-sensitive)', () => {
+    const input = `timeline
+    title History
+    2023 : Event A
+        : Sub-event`;
+    // Should preserve original indentation, not reformat
+    expect(formatMermaid(input)).toBe(input + '\n');
+  });
 });
 
 describe('formatMarkdownMermaidBlocks', () => {
@@ -328,5 +348,35 @@ flowchart TD
     expect(result).toContain('    A->>B: hello');
     // Output should use LF
     expect(result).not.toContain('\r\n');
+  });
+
+  it('preserves indentation for nested code blocks in lists', () => {
+    const input = `- item
+  \`\`\`mermaid
+  sequenceDiagram
+    A->>B: hello
+  \`\`\`
+- next item`;
+    const result = formatMarkdownMermaidBlocks(input);
+
+    // Both fences should be indented
+    expect(result).toContain('  ```mermaid');
+    expect(result).toContain('  ```\n- next item');
+    // Content should also be indented
+    expect(result).toContain('  sequenceDiagram');
+    expect(result).toContain('      A->>B: hello');
+  });
+
+  it('preserves indentation for deeply nested code blocks', () => {
+    const input = `> quote
+>     \`\`\`mermaid
+>     flowchart TD
+>       A --> B
+>     \`\`\``;
+    const result = formatMarkdownMermaidBlocks(input);
+
+    // Fence indentation should be preserved
+    expect(result).toContain('>     ```mermaid');
+    expect(result).toContain('>     ```');
   });
 });
