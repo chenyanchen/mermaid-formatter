@@ -14,7 +14,7 @@
     }
   },
   "bin": {
-    "mmdfmt": "./dist/cli.js"
+    "mmdfmt": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -44,7 +44,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chenyanchen/mermaid-formatter.git"
+    "url": "git+https://github.com/chenyanchen/mermaid-formatter.git"
   },
   "bugs": {
     "url": "https://github.com/chenyanchen/mermaid-formatter/issues"

@@ -115,12 +115,25 @@ Detect the diagram type from source code.
 - quadrantChart
 - requirementDiagram
 - gitGraph
-- mindmap
-- timeline
+- mindmap (preserved, indent-sensitive)
+- timeline (preserved, indent-sensitive)
 - sankey-beta
 - xychart-beta
 - block-beta
 - architecture-beta
+
+## Editor Integration
+
+See [Integrations Guide](docs/integrations.md) for:
+
+- VS Code setup (tasks, run-on-save)
+- Pre-commit hooks
+- GitHub Actions
+- Prettier plugin (coming soon)
+
+## Contributing
+
+Issues and PRs welcome! See [GitHub Issues](https://github.com/chenyanchen/mermaid-formatter/issues).
 
 ## License
 
