@@ -1,0 +1,64 @@
+{
+  "name": "mermaid-formatter",
+  "version": "0.1.0",
+  "description": "A formatter for Mermaid diagram syntax",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "mmdfmt": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run lint && npm run test && npm run build",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mermaid",
+    "formatter",
+    "diagram",
+    "markdown",
+    "sequence-diagram",
+    "flowchart",
+    "ast"
+  ],
+  "author": "chenyanchen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chenyanchen/mermaid-formatter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chenyanchen/mermaid-formatter/issues"
+  },
+  "homepage": "https://github.com/chenyanchen/mermaid-formatter#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^2.0.0"
+  }
+}
