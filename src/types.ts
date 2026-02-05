@@ -1,5 +1,9 @@
 /**
- * Formatting configuration options
+ * Type definitions for Mermaid formatter AST and options.
+ */
+
+/**
+ * Formatting configuration options.
  */
 export interface FormatOptions {
   /** Number of spaces for indentation (default: 4) */
@@ -9,7 +13,7 @@ export interface FormatOptions {
 }
 
 /**
- * Supported Mermaid diagram types
+ * Supported Mermaid diagram types.
  */
 export type DiagramType =
   | 'sequenceDiagram'
@@ -34,25 +38,7 @@ export type DiagramType =
   | 'unknown';
 
 /**
- * Statement types in the AST
- */
-export type StatementType =
-  | 'diagram-decl'
-  | 'directive'
-  | 'participant'
-  | 'block-start' // critical, alt, loop, par, opt, break, rect, subgraph
-  | 'brace-block-start' // state {, class {, namespace {
-  | 'block-option' // option
-  | 'block-else' // else
-  | 'block-end' // end
-  | 'brace-block-end' // }
-  | 'note'
-  | 'comment'
-  | 'generic-line'
-  | 'blank-line';
-
-/**
- * Block types that close with 'end' keyword
+ * Block types that close with 'end' keyword.
  */
 export type BlockKind =
   | 'critical'
@@ -65,30 +51,134 @@ export type BlockKind =
   | 'subgraph';
 
 /**
- * Block types that close with '}'
+ * Block types that close with '}'.
  */
 export type BraceBlockKind = 'state' | 'class' | 'namespace';
 
-/**
- * AST Statement node
- */
-export interface Statement {
-  type: StatementType;
+// ============================================================================
+// AST Node Types - More semantic than raw strings
+// ============================================================================
+
+/** Base interface for all statement nodes */
+interface StatementBase {
+  type: string;
+}
+
+/** Diagram type declaration (e.g., "sequenceDiagram", "flowchart TD") */
+export interface DiagramDeclStatement extends StatementBase {
+  type: 'diagram-decl';
+  diagramType: DiagramType;
   content: string;
-  blockKind?: BlockKind | BraceBlockKind;
+}
+
+/** Directive (e.g., "%%{init: {...}}%%") */
+export interface DirectiveStatement extends StatementBase {
+  type: 'directive';
+  content: string;
+}
+
+/** Participant declaration (sequence diagram) */
+export interface ParticipantStatement extends StatementBase {
+  type: 'participant';
+  content: string;
+}
+
+/** Block start with 'end' keyword (critical, alt, loop, etc.) */
+export interface BlockStartStatement extends StatementBase {
+  type: 'block-start';
+  blockKind: BlockKind;
   label?: string;
+  content: string;
+}
+
+/** Brace block start (state {, class {, namespace {) */
+export interface BraceBlockStartStatement extends StatementBase {
+  type: 'brace-block-start';
+  blockKind: BraceBlockKind;
+  name: string;
+  content: string;
+}
+
+/** Block option (sequence diagram) */
+export interface BlockOptionStatement extends StatementBase {
+  type: 'block-option';
+  label?: string;
+  content: string;
+}
+
+/** Block else (sequence diagram) */
+export interface BlockElseStatement extends StatementBase {
+  type: 'block-else';
+  label?: string;
+  content: string;
+}
+
+/** Block end ('end' keyword) */
+export interface BlockEndStatement extends StatementBase {
+  type: 'block-end';
+  content: string;
+}
+
+/** Brace block end ('}') */
+export interface BraceBlockEndStatement extends StatementBase {
+  type: 'brace-block-end';
+  content: string;
+}
+
+/** Note statement */
+export interface NoteStatement extends StatementBase {
+  type: 'note';
+  content: string;
+}
+
+/** Comment (e.g., "%% comment") */
+export interface CommentStatement extends StatementBase {
+  type: 'comment';
+  content: string;
+}
+
+/** Generic line (arrows, relationships, nodes, etc.) */
+export interface GenericLineStatement extends StatementBase {
+  type: 'generic-line';
+  content: string;
+}
+
+/** Blank line */
+export interface BlankLineStatement extends StatementBase {
+  type: 'blank-line';
+  content: '';
 }
 
 /**
- * Parsed diagram AST
+ * Union of all statement types.
+ */
+export type Statement =
+  | DiagramDeclStatement
+  | DirectiveStatement
+  | ParticipantStatement
+  | BlockStartStatement
+  | BraceBlockStartStatement
+  | BlockOptionStatement
+  | BlockElseStatement
+  | BlockEndStatement
+  | BraceBlockEndStatement
+  | NoteStatement
+  | CommentStatement
+  | GenericLineStatement
+  | BlankLineStatement;
+
+/**
+ * Statement type discriminator.
+ */
+export type StatementType = Statement['type'];
+
+/**
+ * Parsed diagram AST.
  */
 export interface Diagram {
   type: DiagramType;
   statements: Statement[];
 }
 
-/**
- * Diagram types where indentation represents hierarchy.
- * These should NOT be reformatted as it would change semantics.
- */
-export const INDENT_SENSITIVE_DIAGRAMS: DiagramType[] = ['mindmap', 'timeline'];
+// Re-export from rules for backwards compatibility
+export { INDENT_SENSITIVE_DIAGRAMS } from './rules.js';

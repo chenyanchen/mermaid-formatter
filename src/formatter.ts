@@ -1,12 +1,166 @@
-import type { Diagram, Statement, FormatOptions } from './types.js';
+/**
+ * Formatter for Mermaid diagram AST.
+ * Converts AST back to formatted source code.
+ */
+
+import type {
+  Diagram,
+  Statement,
+  StatementType,
+  FormatOptions,
+  BlockStartStatement,
+  BraceBlockStartStatement,
+} from './types.js';
+
+// ============================================================================
+// Configuration
+// ============================================================================
 
 const DEFAULT_OPTIONS: Required<FormatOptions> = {
   indentSize: 4,
   useTabs: false,
 };
 
+// ============================================================================
+// Statement Formatters - Strategy pattern
+// ============================================================================
+
+type StatementFormatter = (stmt: Statement) => string;
+
+const STATEMENT_FORMATTERS: Partial<Record<StatementType, StatementFormatter>> =
+  {
+    'block-start': (stmt) => {
+      const s = stmt as BlockStartStatement;
+      return s.label ? `${s.blockKind} ${s.label}` : s.blockKind;
+    },
+    'brace-block-start': (stmt) => {
+      const s = stmt as BraceBlockStartStatement;
+      return `${s.blockKind} ${s.name} {`;
+    },
+    'block-option': (stmt) => {
+      const label = (stmt as { label?: string }).label;
+      return label ? `option ${label}` : 'option';
+    },
+    'block-else': (stmt) => {
+      const label = (stmt as { label?: string }).label;
+      return label ? `else ${label}` : 'else';
+    },
+  };
+
+// Statements that need content normalization
+const NORMALIZABLE_TYPES: StatementType[] = [
+  'generic-line',
+  'participant',
+  'note',
+];
+
+// ============================================================================
+// Content Normalizers - Pipeline pattern
+// ============================================================================
+
+type ContentNormalizer = (content: string) => string;
+
+const CONTENT_NORMALIZERS: ContentNormalizer[] = [
+  // Collapse multiple spaces to single space
+  (content) => content.replace(/  +/g, ' '),
+  // Normalize spaces after colon (A:  B -> A: B)
+  (content) => content.replace(/:\s{2,}/g, ': '),
+  // Normalize bracket padding: [ text ] -> [text]
+  (content) => normalizeBracketPair(content, '[', ']'),
+  // Normalize brace padding: { text } -> {text}
+  (content) => normalizeBracketPair(content, '{', '}'),
+  // Normalize paren padding: ( text ) -> (text)
+  (content) => normalizeBracketPair(content, '(', ')'),
+  // Normalize pipe labels: | text | -> |text|
+  (content) =>
+    content.replace(/\|\s+([^|]*?)\s*\|/g, (_, inner) => `|${inner.trim()}|`),
+];
+
+function normalizeContent(content: string): string {
+  return CONTENT_NORMALIZERS.reduce((acc, fn) => fn(acc), content);
+}
+
+// ============================================================================
+// Indentation Rules
+// ============================================================================
+
+/** Statements that always appear at column 0 (relative to brace depth) */
+const COLUMN_ZERO_TYPES: StatementType[] = [
+  'diagram-decl',
+  'directive',
+  'block-start',
+  'block-option',
+  'block-else',
+  'block-end',
+];
+
+function getIndentDepth(
+  stmt: Statement,
+  seenDiagramDecl: boolean,
+  braceBlockDepth: number
+): number {
+  // Diagram declaration and directives: always at column 0
+  if (stmt.type === 'diagram-decl' || stmt.type === 'directive') {
+    return 0;
+  }
+
+  // Block control statements: at column 0 (relative to brace depth)
+  if (COLUMN_ZERO_TYPES.includes(stmt.type)) {
+    return braceBlockDepth;
+  }
+
+  // Brace block start/end: at brace depth level
+  if (stmt.type === 'brace-block-start' || stmt.type === 'brace-block-end') {
+    return braceBlockDepth;
+  }
+
+  // Inside brace blocks: use brace depth directly
+  if (braceBlockDepth > 0) {
+    return braceBlockDepth;
+  }
+
+  // At top level (after diagram decl): indent by 1
+  if (seenDiagramDecl) {
+    return 1;
+  }
+
+  return 0;
+}
+
+// ============================================================================
+// Blank Line Rules
+// ============================================================================
+
+/** Types that trigger blank line insertion before block starts */
+const BLANK_BEFORE_BLOCK_TYPES: StatementType[] = [
+  'diagram-decl',
+  'generic-line',
+  'participant',
+  'note',
+  'block-end',
+  'brace-block-end',
+];
+
+function shouldInsertBlankBefore(
+  stmt: Statement,
+  lastNonBlankType: StatementType | null
+): boolean {
+  if (!lastNonBlankType) return false;
+
+  // Insert blank before block-start or brace-block-start
+  if (stmt.type === 'block-start' || stmt.type === 'brace-block-start') {
+    return BLANK_BEFORE_BLOCK_TYPES.includes(lastNonBlankType);
+  }
+
+  return false;
+}
+
+// ============================================================================
+// Main Format Function
+// ============================================================================
+
 /**
- * Format a parsed diagram AST back to string
+ * Format a parsed diagram AST back to string.
  */
 export function format(diagram: Diagram, options: FormatOptions = {}): string {
   const opts = { ...DEFAULT_OPTIONS, ...options };
@@ -15,21 +169,19 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
   const lines: string[] = [];
   let braceBlockDepth = 0;
   let seenDiagramDecl = false;
-  let lastNonBlankType: Statement['type'] | null = null;
+  let lastNonBlankType: StatementType | null = null;
 
   for (let i = 0; i < diagram.statements.length; i++) {
     const stmt = diagram.statements[i];
 
     // Handle blank lines: collapse consecutive blanks, skip trailing
     if (stmt.type === 'blank-line') {
-      // Skip if last was also blank or if at the end
       if (
         lastNonBlankType === 'blank-line' ||
         i === diagram.statements.length - 1
       ) {
         continue;
       }
-      // Skip blank at the very beginning
       if (lines.length === 0) {
         continue;
       }
@@ -40,7 +192,6 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
 
     // Insert blank line before block-start if needed
     if (shouldInsertBlankBefore(stmt, lastNonBlankType)) {
-      // Only if last line isn't already blank
       if (lines.length > 0 && lines[lines.length - 1] !== '') {
         lines.push('');
       }
@@ -74,148 +225,36 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
 }
 
 /**
- * Calculate indentation depth for a statement
- */
-function getIndentDepth(
-  stmt: Statement,
-  seenDiagramDecl: boolean,
-  braceBlockDepth: number
-): number {
-  // Diagram declaration and directives: always at column 0
-  if (stmt.type === 'diagram-decl' || stmt.type === 'directive') {
-    return 0;
-  }
-
-  // Block control statements: at column 0 (relative to brace depth)
-  if (
-    stmt.type === 'block-start' ||
-    stmt.type === 'block-option' ||
-    stmt.type === 'block-else' ||
-    stmt.type === 'block-end'
-  ) {
-    return braceBlockDepth;
-  }
-
-  // Brace block start/end: at brace depth level
-  if (stmt.type === 'brace-block-start' || stmt.type === 'brace-block-end') {
-    return braceBlockDepth;
-  }
-
-  // Inside brace blocks: use brace depth directly
-  if (braceBlockDepth > 0) {
-    return braceBlockDepth;
-  }
-
-  // At top level (after diagram decl): indent by 1
-  if (seenDiagramDecl) {
-    return 1;
-  }
-
-  return 0;
-}
-
-/**
- * Determine if a blank line should be inserted before this statement
- */
-function shouldInsertBlankBefore(
-  stmt: Statement,
-  lastNonBlankType: Statement['type'] | null
-): boolean {
-  if (!lastNonBlankType) return false;
-
-  // Insert blank before block-start or brace-block-start
-  if (stmt.type === 'block-start' || stmt.type === 'brace-block-start') {
-    // Insert blank if previous was content or diagram declaration
-    return (
-      lastNonBlankType === 'diagram-decl' ||
-      lastNonBlankType === 'generic-line' ||
-      lastNonBlankType === 'participant' ||
-      lastNonBlankType === 'note' ||
-      lastNonBlankType === 'block-end' ||
-      lastNonBlankType === 'brace-block-end'
-    );
-  }
-
-  return false;
-}
-
-/**
- * Format a single statement's content
+ * Format a single statement's content.
  */
 function formatStatement(stmt: Statement): string {
-  switch (stmt.type) {
-    case 'block-start':
-      return formatBlockStart(stmt);
-    case 'brace-block-start':
-      return formatBraceBlockStart(stmt);
-    case 'block-option':
-      return stmt.label ? `option ${stmt.label}` : 'option';
-    case 'block-else':
-      return stmt.label ? `else ${stmt.label}` : 'else';
-    case 'generic-line':
-    case 'participant':
-    case 'note':
-      return normalizeContent(stmt.content);
-    default:
-      return stmt.content;
+  // Use custom formatter if available
+  const formatter = STATEMENT_FORMATTERS[stmt.type];
+  if (formatter) {
+    return formatter(stmt);
   }
-}
 
-/**
- * Format block start statement
- */
-function formatBlockStart(stmt: Statement): string {
-  if (stmt.blockKind && stmt.label) {
-    return `${stmt.blockKind} ${stmt.label}`;
+  // Normalize content for specific types
+  if (NORMALIZABLE_TYPES.includes(stmt.type)) {
+    return normalizeContent(stmt.content);
   }
-  return stmt.blockKind || stmt.content;
-}
 
-/**
- * Format brace block start statement
- */
-function formatBraceBlockStart(stmt: Statement): string {
-  if (stmt.blockKind && stmt.label) {
-    return `${stmt.blockKind} ${stmt.label} {`;
-  }
+  // Default: return content as-is
   return stmt.content;
 }
 
-/**
- * Normalize content for consistent formatting
- */
-function normalizeContent(content: string): string {
-  let result = content;
-
-  // Collapse multiple spaces to single space
-  result = result.replace(/  +/g, ' ');
-
-  // Normalize spaces after colon (A:  B -> A: B)
-  result = result.replace(/:\s{2,}/g, ': ');
-
-  // Normalize bracket padding: [ text ] -> [text]
-  result = normalizeBracketPair(result, '[', ']');
-
-  // Normalize brace padding: { text } -> {text}
-  result = normalizeBracketPair(result, '{', '}');
-
-  // Normalize paren padding: ( text ) -> (text)
-  result = normalizeBracketPair(result, '(', ')');
-
-  // Normalize pipe labels: | text | -> |text|
-  result = normalizePipeLabels(result);
-
-  return result;
-}
+// ============================================================================
+// Helper Functions
+// ============================================================================
 
 /**
- * Normalize padding inside bracket pairs
- * Only normalizes when there's space after opening bracket
+ * Normalize padding inside bracket pairs.
+ * Only normalizes when there's space after opening bracket.
  */
 function normalizeBracketPair(
   content: string,
-  open: char,
-  close: char
+  open: string,
+  close: string
 ): string {
   const chars = [...content];
   const result: string[] = [];
@@ -248,17 +287,4 @@ function normalizeBracketPair(
   }
 
   return result.join('');
-}
-
-type char = string;
-
-/**
- * Normalize pipe labels: |text| format
- */
-function normalizePipeLabels(content: string): string {
-  // Match | text | pattern (with space after opening pipe)
-  return content.replace(
-    /\|\s+([^|]*?)\s*\|/g,
-    (_, inner) => `|${inner.trim()}|`
-  );
 }

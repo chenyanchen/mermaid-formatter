@@ -1,3 +1,10 @@
+/**
+ * Mermaid Formatter - Public API
+ *
+ * Format Mermaid diagram syntax for consistent code style.
+ */
+
+// Type exports
 export type {
   FormatOptions,
   DiagramType,
@@ -8,17 +15,23 @@ export type {
   BraceBlockKind,
 } from './types.js';
 
-export { INDENT_SENSITIVE_DIAGRAMS } from './types.js';
+// Function exports
 export { parse, detectDiagramType } from './parser.js';
 export { format } from './formatter.js';
+export { isIndentSensitive, INDENT_SENSITIVE_DIAGRAMS } from './rules.js';
 
+// Internal imports
 import { parse, detectDiagramType } from './parser.js';
 import { format } from './formatter.js';
-import { INDENT_SENSITIVE_DIAGRAMS } from './types.js';
+import { isIndentSensitive } from './rules.js';
 import type { FormatOptions } from './types.js';
 
+// ============================================================================
+// Main API
+// ============================================================================
+
 /**
- * Format Mermaid diagram source code
+ * Format Mermaid diagram source code.
  *
  * @param input - Mermaid diagram source code
  * @param options - Formatting options
@@ -36,12 +49,12 @@ import type { FormatOptions } from './types.js';
  * ```
  */
 export function formatMermaid(input: string, options?: FormatOptions): string {
-  // Check if this is an indent-sensitive diagram type
+  // Pipeline: detect -> check policy -> parse -> format
   const diagramType = detectDiagramType(input);
-  if (INDENT_SENSITIVE_DIAGRAMS.includes(diagramType)) {
-    // For indent-sensitive diagrams, preserve original formatting
-    // Only ensure trailing newline
-    return input.endsWith('\n') ? input : input + '\n';
+
+  // Policy: skip formatting for indent-sensitive diagrams
+  if (isIndentSensitive(diagramType)) {
+    return ensureTrailingNewline(input);
   }
 
   const diagram = parse(input);
@@ -49,7 +62,9 @@ export function formatMermaid(input: string, options?: FormatOptions): string {
 }
 
 /**
- * Format Mermaid code blocks in Markdown
+ * Format Mermaid code blocks in Markdown.
+ *
+ * Preserves indentation for nested code blocks (in lists, blockquotes, etc.)
  *
  * @param markdown - Markdown content
  * @param options - Formatting options
@@ -73,20 +88,38 @@ export function formatMarkdownMermaidBlocks(
   markdown: string,
   options?: FormatOptions
 ): string {
-  // Support both LF and CRLF line endings
-  // Capture leading indentation to preserve it for nested code blocks
+  // Pattern captures:
+  // 1. Leading indentation (spaces/tabs before ```)
+  // 2. Code content between fences
+  // Supports both LF and CRLF line endings
   return markdown.replace(
     /^([ \t]*)```mermaid\r?\n([\s\S]*?)```/gm,
     (_, indent: string, code: string) => {
       const formatted = formatMermaid(code, options);
-      // Add indentation to each line of the formatted code
-      const indentedCode = indent
-        ? formatted
-            .split('\n')
-            .map((line) => (line ? indent + line : line))
-            .join('\n')
-        : formatted;
-      return indent + '```mermaid\n' + indentedCode + indent + '```';
+      const indentedCode = applyIndent(formatted, indent);
+      return `${indent}\`\`\`mermaid\n${indentedCode}${indent}\`\`\``;
     }
   );
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Ensure string ends with exactly one newline.
+ */
+function ensureTrailingNewline(input: string): string {
+  return input.endsWith('\n') ? input : input + '\n';
+}
+
+/**
+ * Apply indentation to each non-empty line.
+ */
+function applyIndent(content: string, indent: string): string {
+  if (!indent) return content;
+  return content
+    .split('\n')
+    .map((line) => (line ? indent + line : line))
+    .join('\n');
 }

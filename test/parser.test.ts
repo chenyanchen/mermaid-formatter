@@ -1,0 +1,120 @@
+/**
+ * Parser tests
+ */
+
+import { describe, it, expect } from 'vitest';
+import { parse, detectDiagramType } from '../src/index.js';
+
+describe('detectDiagramType', () => {
+  it('detects sequenceDiagram', () => {
+    expect(detectDiagramType('sequenceDiagram\n  A->>B: hello')).toBe(
+      'sequenceDiagram'
+    );
+  });
+
+  it('detects flowchart with direction', () => {
+    expect(detectDiagramType('flowchart TD\n  A --> B')).toBe('flowchart');
+  });
+
+  it('detects classDiagram', () => {
+    expect(detectDiagramType('classDiagram\n  class Animal')).toBe(
+      'classDiagram'
+    );
+  });
+
+  it('skips comments when detecting', () => {
+    expect(detectDiagramType('%% comment\nsequenceDiagram')).toBe(
+      'sequenceDiagram'
+    );
+  });
+});
+
+describe('parse', () => {
+  it('parses sequence diagram', () => {
+    const input = `sequenceDiagram
+    participant A
+    A->>B: Hello`;
+    const diagram = parse(input);
+
+    expect(diagram.type).toBe('sequenceDiagram');
+    expect(diagram.statements).toHaveLength(3);
+    expect(diagram.statements[0].type).toBe('diagram-decl');
+    expect(diagram.statements[1].type).toBe('participant');
+    expect(diagram.statements[2].type).toBe('generic-line');
+  });
+
+  it('parses block structures', () => {
+    const input = `sequenceDiagram
+critical Section
+    A->>B: hello
+end`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('block-start');
+    expect(
+      diagram.statements[1].type === 'block-start' &&
+        diagram.statements[1].blockKind
+    ).toBe('critical');
+    expect(
+      diagram.statements[1].type === 'block-start' &&
+        diagram.statements[1].label
+    ).toBe('Section');
+    expect(diagram.statements[3].type).toBe('block-end');
+  });
+
+  it('parses brace blocks', () => {
+    const input = `classDiagram
+class Animal {
+    +name: string
+}`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('brace-block-start');
+    expect(
+      diagram.statements[1].type === 'brace-block-start' &&
+        diagram.statements[1].blockKind
+    ).toBe('class');
+    expect(
+      diagram.statements[1].type === 'brace-block-start' &&
+        diagram.statements[1].name
+    ).toBe('Animal');
+    expect(diagram.statements[3].type).toBe('brace-block-end');
+  });
+
+  it('parses brace blocks with spaces in name', () => {
+    const input = `classDiagram
+class "HTTP Client" {
+    +send()
+}`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('brace-block-start');
+    expect(
+      diagram.statements[1].type === 'brace-block-start' &&
+        diagram.statements[1].blockKind
+    ).toBe('class');
+    expect(
+      diagram.statements[1].type === 'brace-block-start' &&
+        diagram.statements[1].name
+    ).toBe('"HTTP Client"');
+    expect(diagram.statements[3].type).toBe('brace-block-end');
+  });
+
+  it('parses state blocks with spaces in name', () => {
+    const input = `stateDiagram-v2
+state In Progress {
+    Working
+}`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('brace-block-start');
+    expect(
+      diagram.statements[1].type === 'brace-block-start' &&
+        diagram.statements[1].blockKind
+    ).toBe('state');
+    expect(
+      diagram.statements[1].type === 'brace-block-start' &&
+        diagram.statements[1].name
+    ).toBe('In Progress');
+  });
+});
