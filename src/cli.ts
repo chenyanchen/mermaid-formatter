@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { formatMermaid } from './index.js';
+import { formatMermaid, formatMarkdownMermaidBlocks } from './index.js';
 import type { FormatOptions } from './types.js';
 
 interface CliArgs {
@@ -50,10 +50,10 @@ function parseArgs(args: string[]): CliArgs {
 
 function printHelp(): void {
   console.log(`
-mmdfmt - Mermaid diagram formatter
+mermaidfmt - Mermaid diagram formatter
 
 USAGE:
-    mmdfmt [OPTIONS] [FILE]
+    mermaidfmt [OPTIONS] [FILE]
 
 ARGS:
     <FILE>    Input file (reads from stdin if not provided)
@@ -67,17 +67,17 @@ OPTIONS:
 
 EXAMPLES:
     # Format file to stdout
-    mmdfmt diagram.mmd
+    mermaidfmt diagram.mmd
 
     # Format file in-place
-    mmdfmt -w diagram.mmd
+    mermaidfmt -w diagram.mmd
 
     # Format from stdin
-    echo "sequenceDiagram" | mmdfmt
+    echo "sequenceDiagram" | mermaidfmt
 
     # Custom indent
-    mmdfmt --indent 2 diagram.mmd
-    mmdfmt --tabs diagram.mmd
+    mermaidfmt --indent 2 diagram.mmd
+    mermaidfmt --tabs diagram.mmd
 `);
 }
 
@@ -87,9 +87,9 @@ function printVersion(): void {
     const pkg = JSON.parse(
       readFileSync(new URL('../package.json', import.meta.url), 'utf-8')
     );
-    console.log(`mmdfmt ${pkg.version}`);
+    console.log(`mermaidfmt ${pkg.version}`);
   } catch {
-    console.log('mmdfmt 0.1.0');
+    console.log('mermaidfmt (unknown version)');
   }
 }
 
@@ -142,7 +142,10 @@ async function main(): Promise<void> {
   }
 
   try {
-    const formatted = formatMermaid(input, options);
+    const isMarkdown = args.file?.endsWith('.md');
+    const formatted = isMarkdown
+      ? formatMarkdownMermaidBlocks(input, options)
+      : formatMermaid(input, options);
 
     if (args.write && args.file) {
       writeFileSync(args.file, formatted, 'utf-8');
