@@ -22,20 +22,23 @@ npm run format       # Format source code
 ### CLI
 
 ```bash
+# Install globally (recommended)
+npm install -g mermaid-formatter
+
 # Format file to stdout
-npx mermaid-formatter diagram.mmd
+mermaidfmt diagram.mmd
 
 # Format in-place
-npx mermaid-formatter -w diagram.mmd
+mermaidfmt -w diagram.mmd
 
 # From stdin
-echo "sequenceDiagram" | npx mermaid-formatter
+echo "sequenceDiagram" | mermaidfmt
 
 # Custom indent (default: 4 spaces)
-npx mermaid-formatter --indent 2 diagram.mmd
+mermaidfmt --indent 2 diagram.mmd
 
 # Use tabs
-npx mermaid-formatter --tabs diagram.mmd
+mermaidfmt --tabs diagram.mmd
 ```
 
 ### Library
