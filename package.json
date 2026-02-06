@@ -1,6 +1,6 @@
 {
   "name": "mermaid-formatter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A formatter for Mermaid diagram syntax",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,8 @@
     }
   },
   "bin": {
-    "mmdfmt": "dist/cli.js"
+    "mermaid-formatter": "dist/cli.js",
+    "mermaidfmt": "dist/cli.js"
   },
   "files": [
     "dist",

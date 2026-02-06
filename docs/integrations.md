@@ -4,7 +4,7 @@
 
 | 方式 | 状态 | 说明 |
 |-----|------|------|
-| **CLI** (`mmdfmt`) | ✅ 可用 | 任何支持外部命令的工具都可集成 |
+| **CLI** (`mermaidfmt`) | ✅ 可用 | 任何支持外部命令的工具都可集成 |
 | **Node.js Library** | ✅ 可用 | `formatMermaid()`, `formatMarkdownMermaidBlocks()` |
 | **Prettier Plugin** | 🔜 计划中 | `prettier-plugin-mermaid` |
 | **VS Code Extension** | 🔜 计划中 | 原生格式化支持 |
@@ -26,11 +26,11 @@
     "commands": [
       {
         "match": "\\.mmd$",
-        "cmd": "npx mmdfmt -w ${file}"
+        "cmd": "npx mermaid-formatter -w ${file}"
       },
       {
         "match": "\\.md$",
-        "cmd": "npx mmdfmt-md ${file}"
+        "cmd": "npx mermaid-formatter -w ${file}"
       }
     ]
   }
@@ -47,7 +47,7 @@
     {
       "label": "Format Mermaid",
       "type": "shell",
-      "command": "npx mmdfmt -w ${file}"
+      "command": "npx mermaid-formatter -w ${file}"
     }
   ]
 }
@@ -75,7 +75,7 @@
 | File type | Any (或自定义 .mmd) |
 | Scope | Project Files |
 | Program | `npx` |
-| Arguments | `mmdfmt -w $FilePath$` |
+| Arguments | `mermaidfmt -w $FilePath$` |
 | Output paths | `$FilePath$` |
 | Working directory | `$ProjectFileDir$` |
 
@@ -84,7 +84,7 @@
 | 字段 | 值 |
 |-----|-----|
 | File type | Markdown |
-| Arguments | `mmdfmt -w $FilePath$` (处理 mermaid 代码块) |
+| Arguments | `mermaidfmt -w $FilePath$` (处理 mermaid 代码块) |
 
 ### Method 2: External Tools
 
@@ -95,7 +95,7 @@
 ```
 Name: Format Mermaid
 Program: npx
-Arguments: mmdfmt -w $FilePath$
+Arguments: mermaidfmt -w $FilePath$
 Working directory: $ProjectFileDir$
 ```
 
@@ -111,10 +111,10 @@ Typora 没有内置扩展系统，但可以：
 
 ```bash
 # 格式化单个文件
-npx mmdfmt -w document.md
+npx mermaid-formatter -w document.md
 
 # 格式化目录下所有 md 文件
-find . -name "*.md" -exec npx mmdfmt -w {} \;
+find . -name "*.md" -exec npx mermaid-formatter -w {} \;
 ```
 
 ### Method 2: 使用 fswatch (macOS) 自动格式化
@@ -124,7 +124,7 @@ find . -name "*.md" -exec npx mmdfmt -w {} \;
 brew install fswatch
 
 # 监听文件变化并自动格式化
-fswatch -o ~/Documents/*.md | xargs -n1 -I{} npx mmdfmt -w {}
+fswatch -o ~/Documents/*.md | xargs -n1 -I{} npx mermaid-formatter -w {}
 ```
 
 ### Method 3: 配合 Git Hooks
@@ -142,7 +142,7 @@ fswatch -o ~/Documents/*.md | xargs -n1 -I{} npx mmdfmt -w {}
 **建议工作流**:
 
 1. 本地编辑 `.mmd` 文件
-2. 使用 `mmdfmt -w` 格式化
+2. 使用 `mermaidfmt -w` 格式化
 3. 复制到 mermaid.live 预览
 4. 或使用 VS Code + [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid) 扩展本地预览
 
@@ -169,8 +169,8 @@ npx husky init
 // package.json
 {
   "lint-staged": {
-    "*.mmd": "mmdfmt -w",
-    "*.md": "mmdfmt -w"
+    "*.mmd": "mermaidfmt -w",
+    "*.md": "mermaidfmt -w"
   }
 }
 ```
@@ -187,7 +187,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npx mmdfmt -w **/*.mmd **/*.md
+      - run: npx mermaid-formatter -w **/*.mmd **/*.md
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "style: format mermaid diagrams"

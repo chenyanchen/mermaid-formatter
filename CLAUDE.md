@@ -23,19 +23,19 @@ npm run format       # Format source code
 
 ```bash
 # Format file to stdout
-npx mmdfmt diagram.mmd
+npx mermaid-formatter diagram.mmd
 
 # Format in-place
-npx mmdfmt -w diagram.mmd
+npx mermaid-formatter -w diagram.mmd
 
 # From stdin
-echo "sequenceDiagram" | npx mmdfmt
+echo "sequenceDiagram" | npx mermaid-formatter
 
 # Custom indent (default: 4 spaces)
-npx mmdfmt --indent 2 diagram.mmd
+npx mermaid-formatter --indent 2 diagram.mmd
 
 # Use tabs
-npx mmdfmt --tabs diagram.mmd
+npx mermaid-formatter --tabs diagram.mmd
 ```
 
 ### Library
@@ -69,7 +69,7 @@ src/
 ├── types.ts       # Type definitions (Diagram, Statement, FormatOptions)
 ├── parser.ts      # Lightweight parser → AST conversion
 ├── formatter.ts   # AST → formatted output
-├── cli.ts         # CLI tool (mmdfmt)
+├── cli.ts         # CLI tool (mermaidfmt)
 └── index.test.ts  # Tests
 ```
 

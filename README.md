@@ -22,20 +22,20 @@ npm install mermaid-formatter
 
 ```bash
 # Format file to stdout
-npx mmdfmt diagram.mmd
+npx mermaid-formatter diagram.mmd
 
 # Format file in-place
-npx mmdfmt -w diagram.mmd
+npx mermaid-formatter -w diagram.mmd
 
 # Format from stdin
 echo "sequenceDiagram
-  A->>B: hello" | npx mmdfmt
+  A->>B: hello" | npx mermaid-formatter
 
 # Custom indent (default: 4 spaces)
-npx mmdfmt --indent 2 diagram.mmd
+npx mermaid-formatter --indent 2 diagram.mmd
 
 # Use tabs instead of spaces
-npx mmdfmt --tabs diagram.mmd
+npx mermaid-formatter --tabs diagram.mmd
 ```
 
 ### Programmatic API
