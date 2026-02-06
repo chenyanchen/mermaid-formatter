@@ -13,7 +13,8 @@ A formatter for [Mermaid](https://mermaid.js.org/) diagram syntax.
 ## Installation
 
 ```bash
-npm install mermaid-formatter
+# Global install (recommended for CLI usage)
+npm install -g mermaid-formatter
 ```
 
 ## Usage
@@ -22,20 +23,20 @@ npm install mermaid-formatter
 
 ```bash
 # Format file to stdout
-npx mermaid-formatter diagram.mmd
+mermaidfmt diagram.mmd
 
 # Format file in-place
-npx mermaid-formatter -w diagram.mmd
+mermaidfmt -w diagram.mmd
 
 # Format from stdin
 echo "sequenceDiagram
-  A->>B: hello" | npx mermaid-formatter
+  A->>B: hello" | mermaidfmt
 
 # Custom indent (default: 4 spaces)
-npx mermaid-formatter --indent 2 diagram.mmd
+mermaidfmt --indent 2 diagram.mmd
 
 # Use tabs instead of spaces
-npx mermaid-formatter --tabs diagram.mmd
+mermaidfmt --tabs diagram.mmd
 ```
 
 ### Programmatic API

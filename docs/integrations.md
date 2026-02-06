@@ -12,6 +12,18 @@
 
 ---
 
+## Prerequisites
+
+All editor integrations below require a global install:
+
+```bash
+npm install -g mermaid-formatter
+```
+
+This provides the `mermaidfmt` command.
+
+---
+
 ## VS Code
 
 ### Method 1: External Tool (Run on Save)
@@ -26,11 +38,11 @@
     "commands": [
       {
         "match": "\\.mmd$",
-        "cmd": "npx mermaid-formatter -w ${file}"
+        "cmd": "mermaidfmt -w ${file}"
       },
       {
         "match": "\\.md$",
-        "cmd": "npx mermaid-formatter -w ${file}"
+        "cmd": "mermaidfmt -w ${file}"
       }
     ]
   }
@@ -47,7 +59,7 @@
     {
       "label": "Format Mermaid",
       "type": "shell",
-      "command": "npx mermaid-formatter -w ${file}"
+      "command": "mermaidfmt -w ${file}"
     }
   ]
 }
@@ -74,8 +86,8 @@
 | Name | Mermaid Formatter |
 | File type | Any (或自定义 .mmd) |
 | Scope | Project Files |
-| Program | `npx` |
-| Arguments | `mermaidfmt -w $FilePath$` |
+| Program | `mermaidfmt` |
+| Arguments | `-w $FilePath$` |
 | Output paths | `$FilePath$` |
 | Working directory | `$ProjectFileDir$` |
 
@@ -84,7 +96,7 @@
 | 字段 | 值 |
 |-----|-----|
 | File type | Markdown |
-| Arguments | `mermaidfmt -w $FilePath$` (处理 mermaid 代码块) |
+| Arguments | `-w $FilePath$` (处理 mermaid 代码块) |
 
 ### Method 2: External Tools
 
@@ -94,8 +106,8 @@
 
 ```
 Name: Format Mermaid
-Program: npx
-Arguments: mermaidfmt -w $FilePath$
+Program: mermaidfmt
+Arguments: -w $FilePath$
 Working directory: $ProjectFileDir$
 ```
 
@@ -111,10 +123,10 @@ Typora 没有内置扩展系统，但可以：
 
 ```bash
 # 格式化单个文件
-npx mermaid-formatter -w document.md
+mermaidfmt -w document.md
 
 # 格式化目录下所有 md 文件
-find . -name "*.md" -exec npx mermaid-formatter -w {} \;
+find . -name "*.md" -exec mermaidfmt -w {} \;
 ```
 
 ### Method 2: 使用 fswatch (macOS) 自动格式化
@@ -124,7 +136,7 @@ find . -name "*.md" -exec npx mermaid-formatter -w {} \;
 brew install fswatch
 
 # 监听文件变化并自动格式化
-fswatch -o ~/Documents/*.md | xargs -n1 -I{} npx mermaid-formatter -w {}
+fswatch -o ~/Documents/*.md | xargs -n1 -I{} mermaidfmt -w {}
 ```
 
 ### Method 3: 配合 Git Hooks
@@ -187,7 +199,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npx mermaid-formatter -w **/*.mmd **/*.md
+      - run: find . -name "*.mmd" -o -name "*.md" | xargs -I{} npx mermaid-formatter -w {}
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "style: format mermaid diagrams"
