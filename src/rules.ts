@@ -95,7 +95,7 @@ export function matchBlockKeyword(line: string): BlockKind | null {
 }
 
 /**
- * Sequence diagram arrow types.
+ * Supported arrow operators for arrow-message parsing.
  * Supports: ->>, -->>, ->, -->, -x, --x, -), --), <<->>, <<-->>
  * With optional +/- suffix for activation/deactivation.
  */
@@ -110,6 +110,8 @@ export function matchArrowMessage(
 ): { from: string; arrow: string; to: string; message: string } | null {
   const match = line.match(ARROW_PATTERN);
   if (!match) return null;
+  // Keep flowchart class assignment syntax untouched, e.g. A --> B:::warning
+  if ((match[4] ?? '').startsWith('::')) return null;
   return {
     from: match[1].trim(),
     arrow: match[2],
