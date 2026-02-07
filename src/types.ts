@@ -113,6 +113,13 @@ export interface BlockElseStatement extends StatementBase {
   content: string;
 }
 
+/** Block and (e.g., "and Branch" in par blocks) */
+export interface BlockAndStatement extends StatementBase {
+  type: 'block-and';
+  label?: string;
+  content: string;
+}
+
 /** Block end ('end' keyword) */
 export interface BlockEndStatement extends StatementBase {
   type: 'block-end';
@@ -171,6 +178,7 @@ export type Statement =
   | BraceBlockStartStatement
   | BlockOptionStatement
   | BlockElseStatement
+  | BlockAndStatement
   | BlockEndStatement
   | BraceBlockEndStatement
   | NoteStatement

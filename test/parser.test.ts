@@ -97,6 +97,40 @@ end`;
     expect(diagram.statements[3].type).toBe('block-end');
   });
 
+  it('parses par-and branches', () => {
+    const input = `sequenceDiagram
+par Branch A
+    A->>B: hello
+and Branch B
+    B->>A: world
+end`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('block-start');
+    expect(
+      diagram.statements[1].type === 'block-start' &&
+        diagram.statements[1].blockKind
+    ).toBe('par');
+    expect(diagram.statements[3].type).toBe('block-and');
+    expect(
+      diagram.statements[3].type === 'block-and' &&
+        diagram.statements[3].label
+    ).toBe('Branch B');
+    expect(diagram.statements[5].type).toBe('block-end');
+  });
+
+  it('treats else/option/and without valid parent block as generic lines', () => {
+    const input = `sequenceDiagram
+else fallback
+option maybe
+and branch`;
+    const diagram = parse(input);
+
+    expect(diagram.statements[1].type).toBe('generic-line');
+    expect(diagram.statements[2].type).toBe('generic-line');
+    expect(diagram.statements[3].type).toBe('generic-line');
+  });
+
   it('parses brace blocks', () => {
     const input = `classDiagram
 class Animal {

@@ -3,7 +3,7 @@
  * Converts source code into an AST for formatting.
  */
 
-import type { Diagram, DiagramType, Statement } from './types.js';
+import type { BlockKind, Diagram, DiagramType, Statement } from './types.js';
 import {
   matchDiagramType,
   matchBlockKeyword,
@@ -18,10 +18,11 @@ export function parse(input: string): Diagram {
   const lines = input.split('\n');
   const statements: Statement[] = [];
   let diagramType: DiagramType = 'unknown';
+  const openBlocks: BlockKind[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
-    const statement = parseLine(trimmed, diagramType);
+    const statement = parseLine(trimmed, diagramType, openBlocks);
 
     if (statement) {
       // Track diagram type from first declaration
@@ -29,6 +30,12 @@ export function parse(input: string): Diagram {
         diagramType = statement.diagramType;
       }
       statements.push(statement);
+
+      if (statement.type === 'block-start') {
+        openBlocks.push(statement.blockKind);
+      } else if (statement.type === 'block-end' && openBlocks.length > 0) {
+        openBlocks.pop();
+      }
     }
   }
 
@@ -40,7 +47,8 @@ export function parse(input: string): Diagram {
  */
 function parseLine(
   trimmed: string,
-  currentDiagramType: DiagramType
+  currentDiagramType: DiagramType,
+  openBlocks: readonly BlockKind[]
 ): Statement {
   // Blank line
   if (trimmed === '') {
@@ -67,9 +75,12 @@ function parseLine(
     };
   }
 
-  // Block end: 'end'
+  // Block end: 'end' (only when there's an open block)
   if (trimmed === 'end') {
-    return { type: 'block-end', content: 'end' };
+    if (openBlocks.length > 0) {
+      return { type: 'block-end', content: 'end' };
+    }
+    return { type: 'generic-line', content: trimmed };
   }
 
   // Brace block end: '}'
@@ -77,16 +88,22 @@ function parseLine(
     return { type: 'brace-block-end', content: '}' };
   }
 
-  // Block option (sequence diagram)
-  if (/^option\b/.test(trimmed)) {
+  // Block option (critical ... option ... end)
+  if (/^option\b/.test(trimmed) && topBlockKind(openBlocks) === 'critical') {
     const label = trimmed.slice(6).trim() || undefined;
     return { type: 'block-option', label, content: trimmed };
   }
 
-  // Block else (sequence diagram)
-  if (/^else\b/.test(trimmed)) {
+  // Block else (alt ... else ... end)
+  if (/^else\b/.test(trimmed) && topBlockKind(openBlocks) === 'alt') {
     const label = trimmed.slice(4).trim() || undefined;
     return { type: 'block-else', label, content: trimmed };
+  }
+
+  // Block and (par ... and ... end)
+  if (/^and\b/.test(trimmed) && topBlockKind(openBlocks) === 'par') {
+    const label = trimmed.slice(3).trim() || undefined;
+    return { type: 'block-and', label, content: trimmed };
   }
 
   // Block start with 'end' keyword
@@ -139,6 +156,10 @@ function parseLine(
 
   // Generic line (relationships, nodes, etc.)
   return { type: 'generic-line', content: trimmed };
+}
+
+function topBlockKind(openBlocks: readonly BlockKind[]): BlockKind | null {
+  return openBlocks.length > 0 ? openBlocks[openBlocks.length - 1] : null;
 }
 
 /**

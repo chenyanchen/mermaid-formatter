@@ -47,7 +47,7 @@ participant A`;
   });
 
   describe('block structures', () => {
-    it('formats block structures at column 0', () => {
+    it('formats block structures with indentation', () => {
       const input = `sequenceDiagram
     participant A
 
@@ -57,9 +57,9 @@ participant A`;
       const expected = `sequenceDiagram
     participant A
 
-critical Section
-    A ->> B: hello
-end
+    critical Section
+        A ->> B: hello
+    end
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
@@ -96,6 +96,78 @@ class "HTTP Client" {
       expect(formatMermaid(input)).toBe(expected);
     });
 
+    it('formats nested block structures', () => {
+      const input = `sequenceDiagram
+    participant A
+    participant B
+
+    alt Case 1
+        A->>B: hello
+        alt Nested
+            B->>A: reply
+        end
+    end`;
+      const expected = `sequenceDiagram
+    participant A
+    participant B
+
+    alt Case 1
+        A ->> B: hello
+
+        alt Nested
+            B ->> A: reply
+        end
+    end
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('formats block else at same level as block start', () => {
+      const input = `sequenceDiagram
+    participant A
+    participant B
+
+    alt Case 1
+        A->>B: hello
+    else Case 2
+        B->>A: world
+    end`;
+      const expected = `sequenceDiagram
+    participant A
+    participant B
+
+    alt Case 1
+        A ->> B: hello
+    else Case 2
+        B ->> A: world
+    end
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('formats par-and branches at the same level', () => {
+      const input = `sequenceDiagram
+    participant A
+    participant B
+
+    par Branch A
+        A->>B: hello
+    and Branch B
+        B->>A: world
+    end`;
+      const expected = `sequenceDiagram
+    participant A
+    participant B
+
+    par Branch A
+        A ->> B: hello
+    and Branch B
+        B ->> A: world
+    end
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
     it('formats flowchart with subgraph', () => {
       const input = `flowchart TD
 A --> B
@@ -105,9 +177,23 @@ end`;
       const expected = `flowchart TD
     A --> B
 
+    subgraph Group
+        B --> C
+    end
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('does not treat else as block control outside alt blocks', () => {
+      const input = `flowchart TD
 subgraph Group
-    B --> C
-end
+else --> B
+end`;
+      const expected = `flowchart TD
+
+    subgraph Group
+        else --> B
+    end
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
@@ -225,9 +311,9 @@ end`;
       const expected = `sequenceDiagram
     participant A
 
-critical Section
-    A ->> B: hello
-end
+    critical Section
+        A ->> B: hello
+    end
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
