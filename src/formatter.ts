@@ -46,6 +46,10 @@ const STATEMENT_FORMATTERS: Partial<Record<StatementType, StatementFormatter>> =
       const label = (stmt as { label?: string }).label;
       return label ? `else ${label}` : 'else';
     },
+    'block-and': (stmt) => {
+      const label = (stmt as { label?: string }).label;
+      return label ? `and ${label}` : 'and';
+    },
     'arrow-message': (stmt) => {
       const s = stmt as ArrowMessageStatement;
       const base = `${s.from} ${s.arrow} ${s.to}`;
@@ -91,29 +95,15 @@ function normalizeContent(content: string): string {
 // Indentation Rules
 // ============================================================================
 
-/** Statements that always appear at column 0 (relative to brace depth) */
-const COLUMN_ZERO_TYPES: StatementType[] = [
-  'diagram-decl',
-  'directive',
-  'block-start',
-  'block-option',
-  'block-else',
-  'block-end',
-];
-
 function getIndentDepth(
   stmt: Statement,
   seenDiagramDecl: boolean,
-  braceBlockDepth: number
+  braceBlockDepth: number,
+  blockDepth: number
 ): number {
   // Diagram declaration and directives: always at column 0
   if (stmt.type === 'diagram-decl' || stmt.type === 'directive') {
     return 0;
-  }
-
-  // Block control statements: at column 0 (relative to brace depth)
-  if (COLUMN_ZERO_TYPES.includes(stmt.type)) {
-    return braceBlockDepth;
   }
 
   // Brace block start/end: at brace depth level
@@ -121,17 +111,32 @@ function getIndentDepth(
     return braceBlockDepth;
   }
 
-  // Inside brace blocks: use brace depth directly
+  // Inside brace blocks
   if (braceBlockDepth > 0) {
-    return braceBlockDepth;
+    if (
+      stmt.type === 'block-else' ||
+      stmt.type === 'block-option' ||
+      stmt.type === 'block-and'
+    ) {
+      return braceBlockDepth + blockDepth - 1;
+    }
+    return braceBlockDepth + blockDepth;
   }
 
-  // At top level (after diagram decl): indent by 1
-  if (seenDiagramDecl) {
-    return 1;
+  // Base indentation level
+  const base = seenDiagramDecl ? 1 : 0;
+
+  // Block else/option: same level as block-start
+  if (
+    stmt.type === 'block-else' ||
+    stmt.type === 'block-option' ||
+    stmt.type === 'block-and'
+  ) {
+    return base + blockDepth - 1;
   }
 
-  return 0;
+  // All other statements (including block-start, block-end): base + blockDepth
+  return base + blockDepth;
 }
 
 // ============================================================================
@@ -176,6 +181,7 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
 
   const lines: string[] = [];
   let braceBlockDepth = 0;
+  let blockDepth = 0;
   let seenDiagramDecl = false;
   let lastNonBlankType: StatementType | null = null;
 
@@ -210,8 +216,18 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
       braceBlockDepth--;
     }
 
+    // Decrement block depth before formatting block-end
+    if (stmt.type === 'block-end' && blockDepth > 0) {
+      blockDepth--;
+    }
+
     // Calculate indentation depth
-    const depth = getIndentDepth(stmt, seenDiagramDecl, braceBlockDepth);
+    const depth = getIndentDepth(
+      stmt,
+      seenDiagramDecl,
+      braceBlockDepth,
+      blockDepth
+    );
 
     // Format the statement
     const content = formatStatement(stmt);
@@ -224,6 +240,9 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
     }
     if (stmt.type === 'brace-block-start') {
       braceBlockDepth++;
+    }
+    if (stmt.type === 'block-start') {
+      blockDepth++;
     }
     lastNonBlankType = stmt.type;
   }

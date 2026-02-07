@@ -79,8 +79,8 @@ src/
 ## Formatting Rules
 
 - Diagram declaration at column 0
-- `critical`, `alt`, `loop`, `par`, `opt`, `break`, `rect`, `subgraph`, `end` at column 0
-- `else`, `option` at column 0
+- Block keywords (`critical`, `alt`, `loop`, `par`, `opt`, `break`, `rect`, `subgraph`, `end`) indented based on nesting depth
+- Block continuations (`else`, `option`, `and`) at same level as their opening block keyword
 - `state Name {`, `class Name {`, `namespace Name {` with brace depth tracking
 - All other statements indented by configured amount
 - Consecutive blank lines collapsed to single blank line
