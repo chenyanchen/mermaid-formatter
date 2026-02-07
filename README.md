@@ -53,7 +53,7 @@ const formatted = formatMermaid(input);
 // Output:
 // sequenceDiagram
 //     participant A
-//     A->>B: Hello
+//     A ->> B: Hello
 
 // With options
 const formatted2 = formatMermaid(input, { indentSize: 2, useTabs: false });
