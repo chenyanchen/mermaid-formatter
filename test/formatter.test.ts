@@ -274,6 +274,15 @@ end`;
       expect(formatMermaid(input)).toBe(expected);
     });
 
+    it('normalizes arrows in stateDiagram', () => {
+      const input = `stateDiagram-v2
+    s1-->s2:transition`;
+      const expected = `stateDiagram-v2
+    s1 --> s2: transition
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
     it('normalizes bracket padding', () => {
       const input = `flowchart TD
     A[ Start ] --> B[ End ]`;
