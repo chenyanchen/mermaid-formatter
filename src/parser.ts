@@ -8,6 +8,7 @@ import {
   matchDiagramType,
   matchBlockKeyword,
   matchBraceBlockStart,
+  matchArrowMessage,
 } from './rules.js';
 
 /**
@@ -121,7 +122,22 @@ function parseLine(
     return { type: 'note', content: trimmed };
   }
 
-  // Generic line (arrows, relationships, nodes, etc.)
+  // Arrow message (sequence diagrams only, e.g., "A->>B: Hello")
+  if (currentDiagramType === 'sequenceDiagram') {
+    const arrowMatch = matchArrowMessage(trimmed);
+    if (arrowMatch) {
+      return {
+        type: 'arrow-message',
+        from: arrowMatch.from,
+        arrow: arrowMatch.arrow,
+        to: arrowMatch.to,
+        message: arrowMatch.message,
+        content: trimmed,
+      };
+    }
+  }
+
+  // Generic line (relationships, nodes, etc.)
   return { type: 'generic-line', content: trimmed };
 }
 
