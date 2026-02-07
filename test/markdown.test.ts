@@ -11,7 +11,7 @@ describe('formatMarkdownMermaidBlocks', () => {
 
 \`\`\`mermaid
 sequenceDiagram
-      A->>B: hello
+      A ->> B: hello
 \`\`\`
 
 Some text.
@@ -20,7 +20,7 @@ Some text.
 
 \`\`\`mermaid
 sequenceDiagram
-    A->>B: hello
+    A ->> B: hello
 \`\`\`
 
 Some text.
@@ -40,7 +40,7 @@ flowchart TD
 \`\`\``;
     const result = formatMarkdownMermaidBlocks(input);
 
-    expect(result).toContain('    A->>B: hello');
+    expect(result).toContain('    A ->> B: hello');
     expect(result).toContain('    A --> B');
   });
 
@@ -48,7 +48,7 @@ flowchart TD
     const input = '```mermaid\r\nsequenceDiagram\r\n  A->>B: hello\r\n```';
     const result = formatMarkdownMermaidBlocks(input);
 
-    expect(result).toContain('    A->>B: hello');
+    expect(result).toContain('    A ->> B: hello');
     // Output should use LF
     expect(result).not.toContain('\r\n');
   });
@@ -58,7 +58,7 @@ flowchart TD
       const input = `- item
   \`\`\`mermaid
   sequenceDiagram
-    A->>B: hello
+    A ->> B: hello
   \`\`\`
 - next item`;
       const result = formatMarkdownMermaidBlocks(input);
@@ -68,7 +68,7 @@ flowchart TD
       expect(result).toContain('  ```\n- next item');
       // Content should also be indented
       expect(result).toContain('  sequenceDiagram');
-      expect(result).toContain('      A->>B: hello');
+      expect(result).toContain('      A ->> B: hello');
     });
 
     it('preserves indentation for deeply nested code blocks', () => {

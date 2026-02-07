@@ -137,6 +137,16 @@ export interface CommentStatement extends StatementBase {
   content: string;
 }
 
+/** Arrow message (e.g., "A->>B: Hello") */
+export interface ArrowMessageStatement extends StatementBase {
+  type: 'arrow-message';
+  from: string;
+  arrow: string;
+  to: string;
+  message: string;
+  content: string;
+}
+
 /** Generic line (arrows, relationships, nodes, etc.) */
 export interface GenericLineStatement extends StatementBase {
   type: 'generic-line';
@@ -156,6 +166,7 @@ export type Statement =
   | DiagramDeclStatement
   | DirectiveStatement
   | ParticipantStatement
+  | ArrowMessageStatement
   | BlockStartStatement
   | BraceBlockStartStatement
   | BlockOptionStatement

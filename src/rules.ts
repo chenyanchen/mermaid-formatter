@@ -95,6 +95,30 @@ export function matchBlockKeyword(line: string): BlockKind | null {
 }
 
 /**
+ * Sequence diagram arrow types.
+ * Supports: ->>, -->>, ->, -->, -x, --x, -), --), <<->>, <<-->>
+ * With optional +/- suffix for activation/deactivation.
+ */
+const ARROW_PATTERN =
+  /^(.+?)\s*((?:<<-->>|<<->>|-->>|->>|-->|->|--x|-x|--\)|-\))[+-]?)\s*(.+?)\s*:\s*(.*)?$/;
+
+/**
+ * Match arrow message (e.g., "A->>B: Hello", "client ->> agent: initialize")
+ */
+export function matchArrowMessage(
+  line: string
+): { from: string; arrow: string; to: string; message: string } | null {
+  const match = line.match(ARROW_PATTERN);
+  if (!match) return null;
+  return {
+    from: match[1].trim(),
+    arrow: match[2],
+    to: match[3].trim(),
+    message: (match[4] ?? '').trim(),
+  };
+}
+
+/**
  * Match brace block start (state Name {, class Name {, namespace Name {)
  */
 export function matchBraceBlockStart(

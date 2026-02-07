@@ -40,7 +40,41 @@ describe('parse', () => {
     expect(diagram.statements).toHaveLength(3);
     expect(diagram.statements[0].type).toBe('diagram-decl');
     expect(diagram.statements[1].type).toBe('participant');
-    expect(diagram.statements[2].type).toBe('generic-line');
+    expect(diagram.statements[2].type).toBe('arrow-message');
+    const arrow = diagram.statements[2];
+    expect(arrow.type === 'arrow-message' && arrow.from).toBe('A');
+    expect(arrow.type === 'arrow-message' && arrow.arrow).toBe('->>');
+    expect(arrow.type === 'arrow-message' && arrow.to).toBe('B');
+    expect(arrow.type === 'arrow-message' && arrow.message).toBe('Hello');
+  });
+
+  it('parses arrow message without space', () => {
+    const input = `sequenceDiagram
+    A->>B:Hello`;
+    const diagram = parse(input);
+    const arrow = diagram.statements[1];
+    expect(arrow.type).toBe('arrow-message');
+    expect(arrow.type === 'arrow-message' && arrow.from).toBe('A');
+    expect(arrow.type === 'arrow-message' && arrow.to).toBe('B');
+    expect(arrow.type === 'arrow-message' && arrow.message).toBe('Hello');
+  });
+
+  it('parses activation arrows', () => {
+    const input = `sequenceDiagram
+    A->>+B: Hello`;
+    const diagram = parse(input);
+    const arrow = diagram.statements[1];
+    expect(arrow.type).toBe('arrow-message');
+    expect(arrow.type === 'arrow-message' && arrow.arrow).toBe('->>+');
+    expect(arrow.type === 'arrow-message' && arrow.from).toBe('A');
+    expect(arrow.type === 'arrow-message' && arrow.to).toBe('B');
+  });
+
+  it('does not parse arrows in flowchart', () => {
+    const input = `flowchart TD
+    A --> B:::warning`;
+    const diagram = parse(input);
+    expect(diagram.statements[1].type).toBe('generic-line');
   });
 
   it('parses block structures', () => {
@@ -59,6 +93,7 @@ end`;
       diagram.statements[1].type === 'block-start' &&
         diagram.statements[1].label
     ).toBe('Section');
+    expect(diagram.statements[2].type).toBe('arrow-message');
     expect(diagram.statements[3].type).toBe('block-end');
   });
 

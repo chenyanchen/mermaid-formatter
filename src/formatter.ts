@@ -8,6 +8,7 @@ import type {
   Statement,
   StatementType,
   FormatOptions,
+  ArrowMessageStatement,
   BlockStartStatement,
   BraceBlockStartStatement,
 } from './types.js';
@@ -45,6 +46,14 @@ const STATEMENT_FORMATTERS: Partial<Record<StatementType, StatementFormatter>> =
       const label = (stmt as { label?: string }).label;
       return label ? `else ${label}` : 'else';
     },
+    'arrow-message': (stmt) => {
+      const s = stmt as ArrowMessageStatement;
+      const base = `${s.from} ${s.arrow} ${s.to}`;
+      if (!s.message) return `${base}:`;
+      // Normalize multiple spaces in message
+      const message = s.message.replace(/  +/g, ' ');
+      return `${base}: ${message}`;
+    },
   };
 
 // Statements that need content normalization
@@ -63,8 +72,6 @@ type ContentNormalizer = (content: string) => string;
 const CONTENT_NORMALIZERS: ContentNormalizer[] = [
   // Collapse multiple spaces to single space
   (content) => content.replace(/  +/g, ' '),
-  // Normalize spaces after colon (A:  B -> A: B)
-  (content) => content.replace(/:\s{2,}/g, ': '),
   // Normalize bracket padding: [ text ] -> [text]
   (content) => normalizeBracketPair(content, '[', ']'),
   // Normalize brace padding: { text } -> {text}
@@ -135,6 +142,7 @@ function getIndentDepth(
 const BLANK_BEFORE_BLOCK_TYPES: StatementType[] = [
   'diagram-decl',
   'generic-line',
+  'arrow-message',
   'participant',
   'note',
   'block-end',

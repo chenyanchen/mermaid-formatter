@@ -13,7 +13,7 @@ describe('formatMermaid', () => {
         A->>B: Hello`;
       const expected = `sequenceDiagram
     participant A
-    A->>B: Hello
+    A ->> B: Hello
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
@@ -58,7 +58,7 @@ participant A`;
     participant A
 
 critical Section
-    A->>B: hello
+    A ->> B: hello
 end
 `;
       expect(formatMermaid(input)).toBe(expected);
@@ -114,11 +114,67 @@ end
   });
 
   describe('normalization', () => {
-    it('normalizes multiple spaces', () => {
+    it('normalizes multiple spaces in arrow messages', () => {
       const input = `sequenceDiagram
     A->>B:  hello  world`;
       const expected = `sequenceDiagram
-    A->>B: hello world
+    A ->> B: hello world
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('adds space after colon in arrow messages', () => {
+      const input = `sequenceDiagram
+    client ->> agent:initialize`;
+      const expected = `sequenceDiagram
+    client ->> agent: initialize
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('normalizes arrow message spacing', () => {
+      const input = `sequenceDiagram
+    A  ->>  B:  hello  world`;
+      const expected = `sequenceDiagram
+    A ->> B: hello world
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('handles arrow message without message text', () => {
+      const input = `sequenceDiagram
+    A->>B:`;
+      const expected = `sequenceDiagram
+    A ->> B:
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('preserves colon in URLs within arrow messages', () => {
+      const input = `sequenceDiagram
+    A->>B: visit https://example.com`;
+      const expected = `sequenceDiagram
+    A ->> B: visit https://example.com
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('preserves activation arrows', () => {
+      const input = `sequenceDiagram
+    A->>+B: Hello
+    B-->>-A: Goodbye`;
+      const expected = `sequenceDiagram
+    A ->>+ B: Hello
+    B -->>- A: Goodbye
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('does not parse arrows in non-sequence diagrams', () => {
+      const input = `flowchart TD
+    A --> B:::warning`;
+      const expected = `flowchart TD
+    A --> B:::warning
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
@@ -141,9 +197,9 @@ end
 
     B->>A: world`;
       const expected = `sequenceDiagram
-    A->>B: hello
+    A ->> B: hello
 
-    B->>A: world
+    B ->> A: world
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
@@ -158,7 +214,7 @@ end`;
     participant A
 
 critical Section
-    A->>B: hello
+    A ->> B: hello
 end
 `;
       expect(formatMermaid(input)).toBe(expected);
@@ -183,7 +239,7 @@ end
     A->>B: hello`;
       const expected = `sequenceDiagram
     %% This is a comment
-    A->>B: hello
+    A ->> B: hello
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
@@ -194,7 +250,7 @@ sequenceDiagram
     A->>B: hello`;
       const expected = `%%{init: {'theme': 'dark'}}%%
 sequenceDiagram
-    A->>B: hello
+    A ->> B: hello
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
