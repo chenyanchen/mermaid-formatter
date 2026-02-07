@@ -190,6 +190,18 @@ end
   });
 
   describe('blank lines', () => {
+    it('removes trailing blank lines', () => {
+      const input = `sequenceDiagram
+    A->>B: hello
+
+
+`;
+      const expected = `sequenceDiagram
+    A ->> B: hello
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
     it('collapses consecutive blank lines', () => {
       const input = `sequenceDiagram
     A->>B: hello

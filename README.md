@@ -100,7 +100,9 @@ Detect the diagram type from source code.
 - Block keywords (`critical`, `alt`, `loop`, `par`, `opt`, `break`, `rect`, `subgraph`, `end`) at column 0
 - Content inside blocks indented by configured amount
 - Consecutive blank lines collapsed to single blank line
+- Trailing blank lines removed
 - Blank line inserted before block starts
+- Arrow messages normalized (`A->>B:msg` → `A ->> B: msg`)
 - Whitespace normalized (multiple spaces → single, bracket padding removed)
 
 ## Supported Diagram Types
