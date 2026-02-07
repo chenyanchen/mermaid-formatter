@@ -139,19 +139,17 @@ function parseLine(
     return { type: 'note', content: trimmed };
   }
 
-  // Arrow message (sequence diagrams only, e.g., "A->>B: Hello")
-  if (currentDiagramType === 'sequenceDiagram') {
-    const arrowMatch = matchArrowMessage(trimmed);
-    if (arrowMatch) {
-      return {
-        type: 'arrow-message',
-        from: arrowMatch.from,
-        arrow: arrowMatch.arrow,
-        to: arrowMatch.to,
-        message: arrowMatch.message,
-        content: trimmed,
-      };
-    }
+  // Arrow message (all diagram types when syntax matches)
+  const arrowMatch = matchArrowMessage(trimmed);
+  if (arrowMatch) {
+    return {
+      type: 'arrow-message',
+      from: arrowMatch.from,
+      arrow: arrowMatch.arrow,
+      to: arrowMatch.to,
+      message: arrowMatch.message,
+      content: trimmed,
+    };
   }
 
   // Generic line (relationships, nodes, etc.)

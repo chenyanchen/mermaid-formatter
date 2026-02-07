@@ -70,11 +70,25 @@ describe('parse', () => {
     expect(arrow.type === 'arrow-message' && arrow.to).toBe('B');
   });
 
-  it('does not parse arrows in flowchart', () => {
+  it('does not parse flowchart class syntax as arrow message', () => {
     const input = `flowchart TD
     A --> B:::warning`;
     const diagram = parse(input);
     expect(diagram.statements[1].type).toBe('generic-line');
+  });
+
+  it('parses arrows in non-sequence diagrams when pattern matches', () => {
+    const input = `classDiagram
+    Animal-->Dog:inherits`;
+    const diagram = parse(input);
+
+    expect(diagram.type).toBe('classDiagram');
+    expect(diagram.statements[1].type).toBe('arrow-message');
+    const arrow = diagram.statements[1];
+    expect(arrow.type === 'arrow-message' && arrow.from).toBe('Animal');
+    expect(arrow.type === 'arrow-message' && arrow.arrow).toBe('-->');
+    expect(arrow.type === 'arrow-message' && arrow.to).toBe('Dog');
+    expect(arrow.type === 'arrow-message' && arrow.message).toBe('inherits');
   });
 
   it('parses block structures', () => {

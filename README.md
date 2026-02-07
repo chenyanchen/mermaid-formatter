@@ -103,7 +103,8 @@ Detect the diagram type from source code.
 - Consecutive blank lines collapsed to single blank line
 - Trailing blank lines removed
 - Blank line inserted before block starts
-- Arrow messages normalized (`A->>B:msg` → `A ->> B: msg`)
+- Arrow messages normalized when line matches `from ARROW to: message` pattern (`A->>B:msg` → `A ->> B: msg`)
+- Flowchart class syntax is preserved (`A --> B:::warning` is not treated as arrow message)
 - Whitespace normalized (multiple spaces → single, bracket padding removed)
 
 ## Supported Diagram Types

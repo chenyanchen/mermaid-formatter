@@ -85,6 +85,7 @@ src/
 - All other statements indented by configured amount
 - Consecutive blank lines collapsed to single blank line
 - Blank line inserted before block starts when preceded by content
+- Arrow messages are parsed by `from ARROW to: message` pattern (flowchart `:::class` syntax is preserved)
 - Content normalization: multiple spaces → single, bracket padding removed
 
 ## Adding New Diagram Types

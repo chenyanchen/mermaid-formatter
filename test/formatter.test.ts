@@ -256,11 +256,20 @@ end`;
       expect(formatMermaid(input)).toBe(expected);
     });
 
-    it('does not parse arrows in non-sequence diagrams', () => {
+    it('does not parse flowchart class syntax as arrow message', () => {
       const input = `flowchart TD
     A --> B:::warning`;
       const expected = `flowchart TD
     A --> B:::warning
+`;
+      expect(formatMermaid(input)).toBe(expected);
+    });
+
+    it('normalizes arrows in non-sequence diagrams when pattern matches', () => {
+      const input = `classDiagram
+    Animal-->Dog:inherits`;
+      const expected = `classDiagram
+    Animal --> Dog: inherits
 `;
       expect(formatMermaid(input)).toBe(expected);
     });
