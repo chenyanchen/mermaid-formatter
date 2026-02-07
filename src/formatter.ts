@@ -228,6 +228,11 @@ export function format(diagram: Diagram, options: FormatOptions = {}): string {
     lastNonBlankType = stmt.type;
   }
 
+  // Remove trailing blank lines
+  while (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+
   // Ensure single trailing newline
   return lines.join('\n') + '\n';
 }
