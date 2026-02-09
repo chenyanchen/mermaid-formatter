@@ -11,6 +11,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./prettier-plugin": {
+      "types": "./dist/prettier-plugin.d.ts",
+      "import": "./dist/prettier-plugin.js",
+      "default": "./dist/prettier-plugin.js"
     }
   },
   "bin": {
@@ -24,17 +29,20 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "test:exports": "node --input-type=module -e \"const mod=await import('mermaid-formatter/prettier-plugin'); if (typeof mod.default !== 'object') throw new Error('Invalid plugin export');\"",
     "test:watch": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepublishOnly": "npm run lint && npm run test && npm run build",
+    "prepublishOnly": "npm run lint && npm run test && npm run build && npm run test:exports",
     "clean": "rm -rf dist"
   },
   "keywords": [
     "mermaid",
     "formatter",
+    "prettier",
+    "prettier-plugin",
     "diagram",
     "markdown",
     "sequence-diagram",

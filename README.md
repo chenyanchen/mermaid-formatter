@@ -39,6 +39,27 @@ mermaidfmt --indent 2 diagram.mmd
 mermaidfmt --tabs diagram.mmd
 ```
 
+### Prettier Plugin
+
+```bash
+npm install -D prettier mermaid-formatter
+```
+
+```json
+// .prettierrc
+{
+  "plugins": ["mermaid-formatter/prettier-plugin"]
+}
+```
+
+```bash
+# Format Mermaid files
+npx prettier --write "**/*.mmd"
+
+# Mermaid fenced code blocks in Markdown are also formatted
+npx prettier --write "**/*.md"
+```
+
 ### Programmatic API
 
 ```typescript
@@ -134,7 +155,7 @@ See [Integrations Guide](docs/integrations.md) for:
 - VS Code setup (tasks, run-on-save)
 - Pre-commit hooks
 - GitHub Actions
-- Prettier plugin (coming soon)
+- Prettier plugin
 
 ## Contributing
 

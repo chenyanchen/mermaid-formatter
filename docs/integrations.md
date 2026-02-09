@@ -2,25 +2,31 @@
 
 ## Current Integration Methods
 
-| 方式 | 状态 | 说明 |
+| Method | Status | Notes |
 |-----|------|------|
-| **CLI** (`mermaidfmt`) | ✅ 可用 | 任何支持外部命令的工具都可集成 |
-| **Node.js Library** | ✅ 可用 | `formatMermaid()`, `formatMarkdownMermaidBlocks()` |
-| **Prettier Plugin** | 🔜 计划中 | `prettier-plugin-mermaid` |
-| **VS Code Extension** | 🔜 计划中 | 原生格式化支持 |
-| **Remark Plugin** | 🔜 计划中 | Markdown 处理管道 |
+| **CLI** (`mermaidfmt`) | ✅ Available | Works with any tool that can run an external command |
+| **Node.js Library** | ✅ Available | `formatMermaid()`, `formatMarkdownMermaidBlocks()` |
+| **Prettier Plugin** | ✅ Available | `mermaid-formatter/prettier-plugin` |
+| **VS Code Extension** | 🔜 Planned | Native formatting support |
+| **Remark Plugin** | 🔜 Planned | Markdown processing pipeline |
 
 ---
 
 ## Prerequisites
 
-All editor integrations below require a global install:
+### CLI / External Tool Integrations
 
 ```bash
 npm install -g mermaid-formatter
 ```
 
-This provides the `mermaidfmt` command.
+This provides the `mermaidfmt` command for Run on Save, File Watcher, and CI shell workflows.
+
+### Prettier Integration
+
+```bash
+npm install -D prettier mermaid-formatter
+```
 
 ---
 
@@ -28,9 +34,9 @@ This provides the `mermaidfmt` command.
 
 ### Method 1: External Tool (Run on Save)
 
-1. Install [Run on Save](https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave) extension
+1. Install the [Run on Save](https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave) extension.
 
-2. Add to `.vscode/settings.json`:
+2. Add this to `.vscode/settings.json`:
 
 ```json
 {
@@ -67,42 +73,52 @@ This provides the `mermaidfmt` command.
 
 ### VS Code + Prettier
 
-**当前状态**: Prettier 不原生支持 Mermaid。需要等待 `prettier-plugin-mermaid`。
+Enable the plugin in your project's `.prettierrc`:
 
-**Workaround**: 使用 Run on Save 作为补充格式化。
+```json
+{
+  "plugins": ["mermaid-formatter/prettier-plugin"]
+}
+```
+
+Behavior:
+- `.mmd` / `.mermaid` files are formatted through the plugin.
+- ` ```mermaid ` code blocks inside `.md` files are formatted automatically by Prettier (default `embeddedLanguageFormatting: "auto"`).
+
+If the Prettier extension is installed in VS Code, this works on save.
 
 ---
 
 ## JetBrains IDEs (WebStorm, IntelliJ, GoLand, etc.)
 
-### Method 1: File Watchers (推荐)
+### Method 1: File Watchers (Recommended)
 
-1. **Settings** → **Tools** → **File Watchers** → **+**
+1. Go to **Settings** → **Tools** → **File Watchers** → **+**.
 
-2. 配置:
+2. Configure:
 
-| 字段 | 值 |
+| Field | Value |
 |-----|-----|
 | Name | Mermaid Formatter |
-| File type | Any (或自定义 .mmd) |
+| File type | Any (or custom `.mmd`) |
 | Scope | Project Files |
 | Program | `mermaidfmt` |
 | Arguments | `-w $FilePath$` |
 | Output paths | `$FilePath$` |
 | Working directory | `$ProjectFileDir$` |
 
-3. 对于 .md 文件，创建另一个 watcher:
+3. For `.md` files, create another watcher:
 
-| 字段 | 值 |
+| Field | Value |
 |-----|-----|
 | File type | Markdown |
-| Arguments | `-w $FilePath$` (处理 mermaid 代码块) |
+| Arguments | `-w $FilePath$` (formats Mermaid code blocks) |
 
 ### Method 2: External Tools
 
-1. **Settings** → **Tools** → **External Tools** → **+**
+1. Go to **Settings** → **Tools** → **External Tools** → **+**.
 
-2. 配置:
+2. Configure:
 
 ```
 Name: Format Mermaid
@@ -111,66 +127,66 @@ Arguments: -w $FilePath$
 Working directory: $ProjectFileDir$
 ```
 
-3. 绑定快捷键: **Settings** → **Keymap** → 搜索 "Format Mermaid"
+3. Bind a shortcut in **Settings** → **Keymap** (search for "Format Mermaid").
 
 ---
 
 ## Typora
 
-Typora 没有内置扩展系统，但可以：
+Typora has no native extension system, but you can still integrate formatting.
 
-### Method 1: 保存前手动格式化
+### Method 1: Manual formatting before save
 
 ```bash
-# 格式化单个文件
+# Format one file
 mermaidfmt -w document.md
 
-# 格式化目录下所有 md 文件
+# Format all md files in the current directory tree
 find . -name "*.md" -exec mermaidfmt -w {} \;
 ```
 
-### Method 2: 使用 fswatch (macOS) 自动格式化
+### Method 2: Auto format with fswatch (macOS)
 
 ```bash
-# 安装 fswatch
+# Install fswatch
 brew install fswatch
 
-# 监听文件变化并自动格式化
+# Watch file changes and format automatically
 fswatch -o ~/Documents/*.md | xargs -n1 -I{} mermaidfmt -w {}
 ```
 
-### Method 3: 配合 Git Hooks
+### Method 3: Combine with Git hooks
 
-在提交前自动格式化（见下方 Pre-commit 章节）。
+Automatically format before commit (see the Pre-commit section below).
 
 ---
 
 ## mermaid.live / mermaid.ai
 
-这些是**在线编辑器**，用于预览和分享。
+These are **online editors** for preview and sharing.
 
-**集成方式**: 无法直接集成（第三方服务）。
+**Direct integration**: Not available (third-party service).
 
-**建议工作流**:
+**Recommended workflow**:
 
-1. 本地编辑 `.mmd` 文件
-2. 使用 `mermaidfmt -w` 格式化
-3. 复制到 mermaid.live 预览
-4. 或使用 VS Code + [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid) 扩展本地预览
+1. Edit `.mmd` locally.
+2. Run `mermaidfmt -w`.
+3. Copy to mermaid.live for preview.
+4. Or use VS Code + [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid) for local preview.
 
 ---
 
 ## GitHub / GitLab Markdown
 
-GitHub 原生渲染 mermaid 代码块，**无需格式化即可显示**。
+GitHub renders Mermaid code blocks natively, so formatting is not required for rendering.
 
-但格式化仍有价值：
-- 代码审查时更易读
-- 保持团队代码风格一致
+Formatting still helps:
+- Better readability in code review
+- Consistent team style
 
-### Pre-commit Hook (推荐)
+### Pre-commit Hook (Recommended)
 
-使用 [husky](https://github.com/typicode/husky) + [lint-staged](https://github.com/lint-staged/lint-staged):
+Use [husky](https://github.com/typicode/husky) + [lint-staged](https://github.com/lint-staged/lint-staged):
 
 ```bash
 npm install -D husky lint-staged
@@ -207,23 +223,23 @@ jobs:
 
 ---
 
-## 集成优先级建议
+## Recommended Integration Priority
 
-基于你的使用场景：
+Based on common usage scenarios:
 
-| 场景 | 当前可用方案 | 体验 |
+| Scenario | Best Current Option | Experience |
 |-----|-------------|------|
-| **VS Code** | Run on Save | ⭐⭐⭐ 可用但需配置 |
-| **JetBrains** | File Watcher | ⭐⭐⭐⭐ 原生支持外部工具 |
-| **Typora** | 手动 CLI / fswatch | ⭐⭐ 需要额外步骤 |
-| **mermaid.ai** | N/A (在线服务) | - |
-| **GitHub** | Pre-commit / CI | ⭐⭐⭐⭐ 自动化 |
+| **VS Code** | Prettier Plugin | ⭐⭐⭐⭐⭐ Near-native |
+| **JetBrains** | File Watcher | ⭐⭐⭐⭐ Native external-tool workflow |
+| **Typora** | Manual CLI / fswatch | ⭐⭐ Extra setup required |
+| **mermaid.ai** | N/A (online service) | - |
+| **GitHub** | Pre-commit / CI | ⭐⭐⭐⭐ Automated |
 
 ---
 
 ## Roadmap
 
-- [ ] `prettier-plugin-mermaid` - Prettier 集成
-- [ ] VS Code Extension - 原生格式化命令
-- [ ] `remark-mermaid-format` - Remark/MDX 生态
-- [ ] Web API - 在线格式化服务
+- [x] Prettier plugin (`mermaid-formatter/prettier-plugin`)
+- [ ] VS Code Extension - Native format command
+- [ ] `remark-mermaid-format` - Remark/MDX ecosystem
+- [ ] Web API - Online formatting service
