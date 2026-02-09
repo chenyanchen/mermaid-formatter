@@ -64,16 +64,63 @@ sequenceDiagram
 `);
 ```
 
+### Prettier Plugin
+
+Formats `.mmd`/`.mermaid` files and Mermaid code blocks in Markdown via Prettier.
+
+#### Project-local install (recommended)
+
+```bash
+npm install -D mermaid-formatter
+```
+
+`.prettierrc`:
+```json
+{
+  "plugins": ["mermaid-formatter/prettier-plugin"]
+}
+```
+
+#### Global install
+
+```bash
+npm install -g mermaid-formatter
+```
+
+`~/.prettierrc`:
+```json
+{
+  "plugins": ["mermaid-formatter/prettier-plugin"]
+}
+```
+
+VS Code requires an additional setting when using a global install, because the Prettier extension bundles its own Prettier instance which cannot resolve globally installed plugins. Point it to the global Prettier:
+
+`.vscode/settings.json`:
+```json
+{
+  "prettier.prettierPath": "/opt/homebrew/lib/node_modules/prettier"
+}
+```
+
+> **Note:** The exact path depends on your Node.js installation. Run `npm root -g` to find your global `node_modules` path.
+
 ## Architecture
 
 ```
 src/
-├── index.ts       # Public API: formatMermaid, formatMarkdownMermaidBlocks
-├── types.ts       # Type definitions (Diagram, Statement, FormatOptions)
-├── parser.ts      # Lightweight parser → AST conversion
-├── formatter.ts   # AST → formatted output
-├── cli.ts         # CLI tool (mermaidfmt)
-└── index.test.ts  # Tests
+├── index.ts            # Public API: formatMermaid, formatMarkdownMermaidBlocks
+├── types.ts            # Type definitions (Diagram, Statement, FormatOptions)
+├── rules.ts            # Centralized grammar rules and patterns
+├── parser.ts           # Lightweight parser → AST conversion
+├── formatter.ts        # AST → formatted output
+├── prettier-plugin.ts  # Prettier plugin (parser + printer)
+├── cli.ts              # CLI tool (mermaidfmt)
+test/
+├── formatter.test.ts   # Formatter tests
+├── parser.test.ts      # Parser tests
+├── markdown.test.ts    # Markdown integration tests
+└── prettier-plugin.test.ts  # Prettier plugin tests
 ```
 
 ## Formatting Rules
@@ -92,10 +139,10 @@ src/
 
 1. Add pattern in `parser.ts` `DIAGRAM_PATTERNS` array
 2. Add type in `types.ts` `DiagramType` union
-3. Add tests in `index.test.ts`
+3. Add tests
 
 ## Adding New Block Types
 
-1. Add keyword to `BLOCK_KEYWORDS` or `BRACE_BLOCK_KEYWORDS` in `parser.ts`
+1. Add keyword to `BLOCK_KEYWORDS` or `BRACE_BLOCK_KEYWORDS` in `rules.ts`
 2. Add type to `BlockKind` or `BraceBlockKind` in `types.ts`
 3. Add tests

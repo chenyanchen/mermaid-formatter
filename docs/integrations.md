@@ -71,9 +71,15 @@ npm install -D prettier mermaid-formatter
 }
 ```
 
-### VS Code + Prettier
+### Method 3: Prettier Plugin (Recommended)
 
-Enable the plugin in your project's `.prettierrc`:
+#### Project-local install
+
+```bash
+npm install -D prettier mermaid-formatter
+```
+
+Add to your project's `.prettierrc`:
 
 ```json
 {
@@ -81,11 +87,36 @@ Enable the plugin in your project's `.prettierrc`:
 }
 ```
 
-Behavior:
+With the Prettier extension installed in VS Code, this works on save automatically.
+
+#### Global install
+
+```bash
+npm install -g mermaid-formatter
+```
+
+Add to `~/.prettierrc`:
+
+```json
+{
+  "plugins": ["mermaid-formatter/prettier-plugin"]
+}
+```
+
+VS Code's Prettier extension bundles its own Prettier instance, which cannot resolve globally installed plugins. You must point it to the global Prettier in `.vscode/settings.json` (or your user settings):
+
+```json
+{
+  "prettier.prettierPath": "<global-node-modules>/prettier"
+}
+```
+
+Run `npm root -g` to find your global `node_modules` path (e.g., `/opt/homebrew/lib/node_modules` on macOS with Homebrew Node.js).
+
+#### Behavior
+
 - `.mmd` / `.mermaid` files are formatted through the plugin.
 - ` ```mermaid ` code blocks inside `.md` files are formatted automatically by Prettier (default `embeddedLanguageFormatting: "auto"`).
-
-If the Prettier extension is installed in VS Code, this works on save.
 
 ---
 

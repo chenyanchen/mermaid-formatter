@@ -60,6 +60,14 @@ npx prettier --write "**/*.mmd"
 npx prettier --write "**/*.md"
 ```
 
+> **Global install note:** If you use `npm install -g` instead of a project-local install, VS Code's Prettier extension cannot resolve the plugin by default (it bundles its own Prettier instance). You need to point VS Code to the global Prettier in `.vscode/settings.json`:
+>
+> ```json
+> { "prettier.prettierPath": "<global-node-modules>/prettier" }
+> ```
+>
+> Run `npm root -g` to find your global `node_modules` path. Project-local install is recommended to avoid this.
+
 ### Programmatic API
 
 ```typescript
