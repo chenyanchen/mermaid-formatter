@@ -19,7 +19,6 @@
     }
   },
   "bin": {
-    "mermaid-formatter": "dist/cli.js",
     "mermaidfmt": "dist/cli.js"
   },
   "files": [
