@@ -1,3 +1,5 @@
+
+
 # mermaid-formatter
 
 A formatter for [Mermaid](https://mermaid.js.org/) diagram syntax.
@@ -11,6 +13,8 @@ A formatter for [Mermaid](https://mermaid.js.org/) diagram syntax.
 - Zero dependencies (lightweight)
 
 ## Installation
+
+Requires Node.js 18 or later.
 
 ```bash
 # Global install (recommended for CLI usage)
